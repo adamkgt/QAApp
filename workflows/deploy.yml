@@ -1,0 +1,37 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Replace Firebase config secrets
+        run: |
+          sed -i \
+            -e "s/%FIREBASE_API_KEY%/${{ secrets.FIREBASE_API_KEY }}/g" \
+            -e "s/%FIREBASE_AUTH_DOMAIN%/${{ secrets.FIREBASE_AUTH_DOMAIN }}/g" \
+            -e "s/%FIREBASE_PROJECT_ID%/${{ secrets.FIREBASE_PROJECT_ID }}/g" \
+            -e "s/%FIREBASE_STORAGE_BUCKET%/${{ secrets.FIREBASE_STORAGE_BUCKET }}/g" \
+            -e "s/%FIREBASE_MESSAGING_ID%/${{ secrets.FIREBASE_MESSAGING_ID }}/g" \
+            -e "s/%FIREBASE_APP_ID%/${{ secrets.FIREBASE_APP_ID }}/g" \
+            config.template.js
+          mv config.template.js config.js
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./  # katalog z index.html
