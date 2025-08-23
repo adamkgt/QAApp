@@ -27,19 +27,31 @@
   <div class="container py-4">
 
     <!-- 🔹 Header -->
-<div class="header-container d-flex align-items-center justify-content-between mb-4">
-  <h2 class="m-0">Test Case Management - QA</h2>
-  <div id="userPanel"></div>
-</div>
+    <div class="header-container d-flex align-items-center justify-content-between mb-4">
+      <h2 class="m-0">Test Case Management - QA</h2>
+      <div id="userPanel"></div>
+    </div>
 
     <!-- 🔹 Form -->
-    <form id="testForm" class="mb-4" novalidate>
+    <form id="testForm" onsubmit="event.preventDefault(); saveTestCase();" class="mb-4">
       <input type="hidden" id="editIndex" />
       <div class="row g-3">
-        <div class="col-md-3"><label for="testName" class="form-label">Tytuł</label><input type="text" class="form-control" id="testName" required /></div>
-        <div class="col-md-6"><label for="testDesc" class="form-label">Opis</label><input type="text" class="form-control" id="testDesc" /></div>
-        <div class="col-md-6"><label for="testSteps" class="form-label">Kroki</label><textarea class="form-control" id="testSteps" rows="3"></textarea></div>
-        <div class="col-md-6"><label for="expectedResult" class="form-label">Oczekiwany rezultat</label><textarea class="form-control" id="expectedResult" rows="3"></textarea></div>
+        <div class="col-md-3">
+          <label for="testName" class="form-label">Tytuł</label>
+          <input type="text" class="form-control" id="testName" required />
+        </div>
+        <div class="col-md-6">
+          <label for="testDesc" class="form-label">Opis</label>
+          <input type="text" class="form-control" id="testDesc" />
+        </div>
+        <div class="col-md-6">
+          <label for="testSteps" class="form-label">Kroki</label>
+          <textarea class="form-control" id="testSteps" rows="3"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label for="expectedResult" class="form-label">Oczekiwany rezultat</label>
+          <textarea class="form-control" id="expectedResult" rows="3"></textarea>
+        </div>
         <div class="col-md-3">
           <label for="testStatus" class="form-label">Status</label>
           <select class="form-select" id="testStatus">
@@ -48,7 +60,10 @@
             <option value="Fail">Fail</option>
           </select>
         </div>
-        <div class="col-md-3"><label for="testNotes" class="form-label">Uwagi</label><input type="text" class="form-control" id="testNotes" /></div>
+        <div class="col-md-3">
+          <label for="testNotes" class="form-label">Uwagi</label>
+          <input type="text" class="form-control" id="testNotes" />
+        </div>
         <div class="col-md-3">
           <label for="testPriority" class="form-label">Priorytet</label>
           <select class="form-select" id="testPriority">
@@ -149,4 +164,3 @@
   </div>
 </body>
 </html>
-
