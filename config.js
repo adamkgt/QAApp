@@ -1,17 +1,19 @@
 // config.js
 const firebaseConfig = {
-    apiKey: "AIzaSyA7qtIYm01pZdvY-5CNwOKVYgAIO0Vm25w",
-    authDomain: "tc-managment.firebaseapp.com",
-    projectId: "tc-managment",
-    storageBucket: "tc-managment.firebasestorage.app",
-    messagingSenderId: "514951940531",
-    appId: "1:514951940531:web:a6a2d9bf9c0e57e10923c6",
-    measurementId: "G-3VCJZWPJ2F"
+  apiKey: "TU_SWÓJ_API_KEY",
+  authDomain: "TU_SWÓJ_AUTH_DOMAIN",
+  projectId: "TU_SWÓJ_PROJECT_ID",
+  storageBucket: "TU_SWÓJ_STORAGE_BUCKET",
+  messagingSenderId: "TU_SWÓJ_MESSAGING_SENDER_ID",
+  appId: "TU_SWÓJ_APP_ID",
+  measurementId: "TU_SWÓJ_MEASUREMENT_ID"
 };
 
-// Inicjalizacja Firebase
+// Inicjalizacja Firebase (tylko raz)
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
+// Obiekty globalne do użycia w całej aplikacji
 const auth = firebase.auth();
 const db = firebase.firestore();
