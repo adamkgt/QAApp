@@ -8,12 +8,6 @@ const firebaseConfig = {
     appId: "1:514951940531:web:a6a2d9bf9c0e57e10923c6",
     measurementId: "G-3VCJZWPJ2F"
 };
-
-// Inicjalizacja Firebase (tylko raz)
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-// Obiekty globalne do użycia w całej aplikacji
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
