@@ -5,20 +5,19 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
-let statusChart;
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
 const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
-const userPanel = document.getElementById("userPanel");
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
-    const userPanel = document.getElementById('userPanel');
-    userPanel.className = 'd-flex gap-2 align-items-center';
-    userPanel.innerHTML = `
+    const userPanelContainer = document.getElementById('userPanel');
+    if (!userPanelContainer) return;
+
+    userPanelContainer.innerHTML = `
         <span class="fw-bold">${currentUser.email}</span>
         <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
         <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
@@ -37,6 +36,7 @@ function renderUserPanel() {
         auth.signOut().then(() => window.location.href = 'index.html');
     });
 }
+
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
@@ -44,9 +44,20 @@ auth.onAuthStateChanged(user => {
     } else {
         currentUser = user;
         renderUserPanel();
-        loadTestCases();
+        loadTestCases(); // tutaj wczytujemy dane
     }
 });
+
+// ------------------- Ładowanie przypadków testowych -------------------
+function loadTestCases() {
+    db.collection('testCases')
+      .where('owner', '==', currentUser.uid)
+      .onSnapshot(snapshot => {
+          // Nadpisanie tablicy, aby uniknąć dublowania
+          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderTable();
+      }, err => console.error(err));
+}
 
 // ------------------- CRUD -------------------
 function loadTestCases() {
