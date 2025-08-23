@@ -5,27 +5,23 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
-let trendData = [];
+let statusChart;
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const logoutBtn = document.getElementById("logoutBtn");
 const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
+const userPanel = document.getElementById("userPanel");
 
-// ------------------- Funkcje użytkownika -------------------
+// ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
-    const userPanel = document.createElement('div');
-    userPanel.id = 'userPanel';
-    userPanel.className = 'd-flex gap-2 align-items-center';
+    if (!currentUser) return;
     userPanel.innerHTML = `
         <span class="fw-bold">${currentUser.email}</span>
         <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
         <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
     `;
-    document.querySelector('.header-container').appendChild(userPanel);
-
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
         if (newPassword) {
@@ -34,7 +30,6 @@ function renderUserPanel() {
                 .catch(err => alert('Błąd: ' + err.message));
         }
     });
-
     document.getElementById('logoutBtnPanel').addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = 'index.html');
     });
@@ -51,6 +46,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+// ------------------- CRUD -------------------
 function loadTestCases() {
     db.collection('testCases')
       .where('owner', '==', currentUser.uid)
@@ -60,7 +56,6 @@ function loadTestCases() {
       }, err => console.error(err));
 }
 
-// ------------------- CRUD -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
     const data = {
@@ -80,7 +75,7 @@ function saveTestCase() {
             .then(() => resetForm())
             .catch(err => alert('Błąd zapisu: ' + err.message));
     } else {
-        db.collection('testCases').doc(index).set(data)
+        db.collection('testCases').doc(index).update(data)
             .then(() => resetForm())
             .catch(err => alert('Błąd zapisu: ' + err.message));
     }
@@ -117,16 +112,16 @@ function resetForm() {
 
 // ------------------- Filtry i sortowanie -------------------
 function clearFilters() {
-    statusFilter.value = 'all';
-    priorityFilter.value = 'all';
-    searchQuery.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    if (priorityFilter) priorityFilter.value = 'all';
+    if (searchQuery) searchQuery.value = '';
     renderTable();
 }
 
 function applyFilters(data) {
-    const status = statusFilter.value;
-    const priority = priorityFilter.value;
-    const query = searchQuery.value.toLowerCase();
+    const status = statusFilter ? statusFilter.value : 'all';
+    const priority = priorityFilter ? priorityFilter.value : 'all';
+    const query = searchQuery ? searchQuery.value.toLowerCase() : '';
     return data.filter(tc => {
         if (status !== 'all' && tc.status !== status) return false;
         if (priority !== 'all' && tc.priority !== priority) return false;
@@ -142,8 +137,6 @@ function sortBy(key) {
 }
 
 // ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
-let statusChart, trendChart;
-
 function renderTable() {
     let data = applyFilters([...testCases]);
 
@@ -177,13 +170,13 @@ function renderTable() {
         tbody.appendChild(tr);
     });
 
-    updateStats();
-    updateCharts();
+    updateStats(data);
+    updateCharts(data);
 }
 
-function countStats() {
+function countStats(data) {
     let pass = 0, fail = 0, unknown = 0;
-    testCases.forEach(tc => {
+    data.forEach(tc => {
         if (tc.status === 'Pass') pass++;
         else if (tc.status === 'Fail') fail++;
         else unknown++;
@@ -191,17 +184,17 @@ function countStats() {
     return { pass, fail, unknown };
 }
 
-function updateStats() {
-    const { pass, fail, unknown } = countStats();
-    const total = testCases.length || 1;
+function updateStats(filteredData) {
+    const { pass, fail, unknown } = countStats(filteredData);
+    const total = filteredData.length || 1;
 
     document.getElementById('barPass').style.width = (pass / total * 100) + '%';
     document.getElementById('barFail').style.width = (fail / total * 100) + '%';
     document.getElementById('barUnknown').style.width = (unknown / total * 100) + '%';
 }
 
-function updateCharts() {
-    const { pass, fail, unknown } = countStats();
+function updateCharts(filteredData) {
+    const { pass, fail, unknown } = countStats(filteredData);
 
     if (!statusChart && document.getElementById('statusChart')) {
         statusChart = new Chart(document.getElementById('statusChart'), {
@@ -235,9 +228,7 @@ function exportToPDF() {
     doc.setFontSize(10);
     doc.autoTable({
         head: [['Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
-        body: testCases.map(tc => [
-            tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority
-        ]),
+        body: testCases.map(tc => [tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority]),
         styles: { cellPadding: 2, fontSize: 10 }
     });
     doc.save('testcases.pdf');
@@ -245,15 +236,8 @@ function exportToPDF() {
 
 // ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', () => {
-    if (testForm) {
-        testForm.addEventListener('submit', e => {
-            e.preventDefault();
-            saveTestCase();
-        });
-    }
-    if (statusFilter && priorityFilter && searchQuery) {
-        statusFilter.addEventListener('change', renderTable);
-        priorityFilter.addEventListener('change', renderTable);
-        searchQuery.addEventListener('input', renderTable);
-    }
+    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
+    if (statusFilter) statusFilter.addEventListener('change', renderTable);
+    if (priorityFilter) priorityFilter.addEventListener('change', renderTable);
+    if (searchQuery) searchQuery.addEventListener('input', renderTable);
 });
