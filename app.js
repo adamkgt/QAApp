@@ -9,16 +9,32 @@ let trendData = [];
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const logoutBtn = document.getElementById("logoutBtn");
 const userPanel = document.getElementById("userPanel");
-const testCasesList = document.getElementById("testCasesList");
-const statusFilter = document.getElementById("statusFilter");
-const priorityFilter = document.getElementById("priorityFilter");
-const searchQuery = document.getElementById("searchQuery");
-const passwordForm = document.getElementById("passwordForm");
-const passwordMsg = document.getElementById("passwordMsg");
 
-// ------------------- Ochrona strony i panel użytkownika -------------------
+// ------------------- Panel użytkownika -------------------
+function renderUserPanel() {
+    if (!currentUser || !userPanel) return;
+    userPanel.innerHTML = `
+        <span class="me-2">${currentUser.email}</span>
+        <button id="changePasswordBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
+        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
+    `;
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        auth.signOut().then(() => window.location.href = "index.html");
+    });
+
+    document.getElementById("changePasswordBtn").addEventListener("click", () => {
+        const newPassword = prompt("Podaj nowe hasło:");
+        if (newPassword) {
+            currentUser.updatePassword(newPassword)
+                .then(() => alert("Hasło zostało zmienione!"))
+                .catch(err => alert("Błąd: " + err.message));
+        }
+    });
+}
+
+// ------------------- Ochrona strony -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
@@ -29,167 +45,171 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ------------------- Panel użytkownika -------------------
-function renderUserPanel() {
-    if (!currentUser) return;
-    userPanel.innerHTML = `
-        <span>${currentUser.email}</span>
-        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Edytuj profil</button>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
-    });
-}
-
-// ------------------- Zmiana hasła -------------------
-if (passwordForm) {
-    passwordForm.addEventListener("submit", e => {
-        e.preventDefault();
-        const newPassword = document.getElementById("newPassword").value;
-        currentUser.updatePassword(newPassword)
-            .then(() => {
-                passwordMsg.textContent = "Hasło zmienione pomyślnie!";
-                passwordMsg.className = "text-success mt-2 text-center";
-                passwordForm.reset();
-            })
-            .catch(err => {
-                passwordMsg.textContent = "Błąd: " + err.message;
-                passwordMsg.className = "text-danger mt-2 text-center";
-            });
-    });
-}
-
-// ------------------- CRUD lokalny -------------------
-function loadTestCases() {
-    testCases = JSON.parse(localStorage.getItem("testCases") || "[]");
-    renderTable();
-}
-
-if (testForm) {
-    testForm.addEventListener("submit", e => {
-        e.preventDefault();
-        saveTestCase();
-    });
-}
-
-function saveTestCase() {
-    const title = document.getElementById("testTitle").value.trim();
-    const desc = document.getElementById("testDescription").value.trim();
-    const editIndex = document.getElementById("editIndex")?.value;
-
-    if (!title) return;
-
-    const testCase = {
-        id: Date.now(),
-        title,
-        desc,
-        status: '',
-        priority: '',
-        notes: '',
-        history: [`${editIndex ? 'Edytowano' : 'Utworzono'}: ${new Date().toLocaleString()}`]
-    };
-
-    if (editIndex !== '' && editIndex !== undefined) {
-        testCases[editIndex] = testCase;
-        document.getElementById("editIndex").value = '';
-    } else {
-        testCases.push(testCase);
-    }
-
-    localStorage.setItem("testCases", JSON.stringify(testCases));
+// ------------------- CRUD lokalny (localStorage) -------------------
+function getAllTestCases() { return JSON.parse(localStorage.getItem('testCases') || '[]'); }
+function setAllTestCases(data) { localStorage.setItem('testCases', JSON.stringify(data)); }
+function resetForm() {
+    if (!testForm) return;
     testForm.reset();
+    document.getElementById('editIndex').value = '';
+}
+
+// ------------------- CRUD funkcje -------------------
+function saveTestCase() {
+    let index = document.getElementById('editIndex').value;
+    let testCase = {
+        id: document.getElementById('testId').value,
+        name: document.getElementById('testName').value,
+        desc: document.getElementById('testDesc').value,
+        steps: document.getElementById('testSteps').value,
+        expected: document.getElementById('expectedResult').value,
+        status: document.getElementById('testStatus').value,
+        notes: document.getElementById('testNotes').value,
+        priority: document.getElementById('testPriority').value,
+        history: []
+    };
+    testCases = getAllTestCases();
+    if (index === '') {
+        testCase.history.push(`Utworzono: ${new Date().toLocaleString()}`);
+        testCases.push(testCase);
+    } else {
+        let old = { ...testCases[index] };
+        testCase.history = old.history || [];
+        testCase.history.push(`Edytowano: ${new Date().toLocaleString()}`);
+        testCases[index] = testCase;
+    }
+    setAllTestCases(testCases);
+    resetForm();
+    snapshotTrend();
     renderTable();
 }
 
-// ------------------- Renderowanie tabeli -------------------
+function editTestCase(idx) {
+    testCases = getAllTestCases();
+    const tc = testCases[idx];
+    document.getElementById('editIndex').value = idx;
+    document.getElementById('testId').value = tc.id;
+    document.getElementById('testName').value = tc.name;
+    document.getElementById('testDesc').value = tc.desc;
+    document.getElementById('testSteps').value = tc.steps;
+    document.getElementById('expectedResult').value = tc.expected;
+    document.getElementById('testStatus').value = tc.status;
+    document.getElementById('testNotes').value = tc.notes;
+    document.getElementById('testPriority').value = tc.priority;
+}
+
+function deleteTestCase(idx) {
+    if (!confirm('Na pewno usunąć ten test?')) return;
+    testCases = getAllTestCases();
+    testCases.splice(idx, 1);
+    setAllTestCases(testCases);
+    renderTable();
+    snapshotTrend();
+}
+
+function deleteAllTestCases() {
+    if (!confirm('Na pewno usunąć wszystkie testy?')) return;
+    testCases = [];
+    setAllTestCases(testCases);
+    trendData = [];
+    renderTable();
+    updateCharts();
+}
+
+function setCritical(idx) {
+    testCases = getAllTestCases();
+    const tc = testCases[idx];
+    tc.priority = 'Krytyczny';
+    tc.history.push(`Ustawiono priorytet Krytyczny: ${new Date().toLocaleString()}`);
+    testCases[idx] = tc;
+    setAllTestCases(testCases);
+    renderTable();
+}
+
+function showHistory(idx) {
+    testCases = getAllTestCases();
+    const tc = testCases[idx];
+    document.getElementById('historyContent').textContent = tc.history.join('\n');
+    new bootstrap.Modal(document.getElementById('historyModal')).show();
+}
+
+// ------------------- Filtry, sortowanie i statystyki -------------------
+function sortBy(key) {
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; sortKey = key; }
+    renderTable();
+}
+
+function clearFilters() {
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('priorityFilter').value = 'all';
+    document.getElementById('searchQuery').value = '';
+    renderTable();
+}
+
+function applyFilters(data) {
+    const status = document.getElementById('statusFilter').value;
+    const priority = document.getElementById('priorityFilter').value;
+    const query = document.getElementById('searchQuery').value.toLowerCase();
+    return data.filter(tc => {
+        if (status !== 'all' && tc.status !== status) return false;
+        if (priority !== 'all' && tc.priority !== priority) return false;
+        if (query && ![tc.id, tc.name, tc.desc].some(f => f.toLowerCase().includes(query))) return false;
+        return true;
+    });
+}
+
 function renderTable() {
-    if (!testCasesList) return;
-    let filtered = applyFilters(testCases);
+    testCases = getAllTestCases();
+    let data = applyFilters(testCases);
 
     if (sortKey) {
-        filtered.sort((a, b) => {
-            const va = a[sortKey] || '';
-            const vb = b[sortKey] || '';
+        data.sort((a, b) => {
+            const va = a[sortKey] || '', vb = b[sortKey] || '';
             if (va < vb) return sortAsc ? -1 : 1;
             if (va > vb) return sortAsc ? 1 : -1;
             return 0;
         });
     }
 
-    testCasesList.innerHTML = '';
-    filtered.forEach((tc, idx) => {
-        const div = document.createElement("div");
-        div.className = "list-group-item d-flex justify-content-between align-items-start flex-column flex-md-row";
-        div.innerHTML = `
-            <div class="ms-2 me-auto">
-              <div class="fw-bold">${tc.title}</div>
-              ${tc.desc}
-            </div>
-            <div class="mt-2 mt-md-0 d-flex gap-1">
-              <button class="btn btn-sm btn-primary" onclick="editTestCase(${idx})">Edytuj</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${idx})">Usuń</button>
-              <button class="btn btn-sm btn-warning" onclick="setCritical(${idx})">Krytyczny</button>
-              <button class="btn btn-sm btn-info" onclick="showHistory(${idx})">Historia</button>
-            </div>
-        `;
-        testCasesList.appendChild(div);
+    const tbody = document.querySelector('#testTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    data.forEach((tc, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${tc.id}</td>
+        <td>${tc.name}</td>
+        <td>${tc.desc}</td>
+        <td>${formatList(tc.steps)}</td>
+        <td>${formatList(tc.expected)}</td>
+        <td>
+          ${tc.status === 'Pass' ? '<span class="badge pass-badge" title="Test zaliczony">Pass</span>' : ''}
+          ${tc.status === 'Fail' ? '<span class="badge fail-badge" title="Test niezaliczony">Fail</span>' : ''}
+          ${!tc.status ? '<span class="badge unknown-badge">Brak</span>' : ''}
+        </td>
+        <td>${tc.notes}</td>
+        <td>${tc.priority || ''}</td>
+        <td class="nowrap">
+          <button class="btn btn-sm btn-primary" title="Edytuj" onclick="editTestCase(${idx})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" title="Usuń" onclick="deleteTestCase(${idx})"><i class="bi bi-trash"></i></button>
+          <button class="btn btn-sm btn-warning" title="Krytyczny" onclick="setCritical(${idx})"><i class="bi bi-exclamation-triangle"></i></button>
+          <button class="btn btn-sm btn-info" title="Historia" onclick="showHistory(${idx})"><i class="bi bi-clock-history"></i></button>
+        </td>`;
+        tbody.appendChild(tr);
     });
 
     updateStats();
     updateCharts();
 }
 
-// ------------------- Filtry -------------------
-function applyFilters(data) {
-    const status = statusFilter?.value || 'all';
-    const priority = priorityFilter?.value || 'all';
-    const query = searchQuery?.value.toLowerCase() || '';
-
-    return data.filter(tc => {
-        if (status !== 'all' && tc.status !== status) return false;
-        if (priority !== 'all' && tc.priority !== priority) return false;
-        if (query && ![tc.title, tc.desc].some(f => f.toLowerCase().includes(query))) return false;
-        return true;
-    });
+function formatList(text) {
+    if (!text) return '';
+    const lines = text.split('\n').filter(l => l.trim());
+    return '<ol><li>' + lines.join('</li><li>') + '</li></ol>';
 }
 
-function clearFilters() {
-    if (statusFilter) statusFilter.value = 'all';
-    if (priorityFilter) priorityFilter.value = 'all';
-    if (searchQuery) searchQuery.value = '';
-    renderTable();
-}
-
-// ------------------- Funkcje CRUD -------------------
-function editTestCase(idx) {
-    const tc = testCases[idx];
-    document.getElementById("testTitle").value = tc.title;
-    document.getElementById("testDescription").value = tc.desc;
-    document.getElementById("editIndex").value = idx;
-}
-
-function deleteTestCase(idx) {
-    if (!confirm("Na pewno usunąć ten test?")) return;
-    testCases.splice(idx, 1);
-    localStorage.setItem("testCases", JSON.stringify(testCases));
-    renderTable();
-}
-
-function setCritical(idx) {
-    const tc = testCases[idx];
-    tc.priority = 'Krytyczny';
-    tc.history.push(`Ustawiono priorytet Krytyczny: ${new Date().toLocaleString()}`);
-    localStorage.setItem("testCases", JSON.stringify(testCases));
-    renderTable();
-}
-
-function showHistory(idx) {
-    const tc = testCases[idx];
-    alert(tc.history.join("\n"));
-}
-
-// ------------------- Statystyki -------------------
 function countStats() {
     let pass = 0, fail = 0, unknown = 0;
     testCases.forEach(tc => {
@@ -210,81 +230,101 @@ function updateStats() {
     if (barPass) barPass.style.width = (pass / total * 100) + '%';
     if (barFail) barFail.style.width = (fail / total * 100) + '%';
     if (barUnknown) barUnknown.style.width = (unknown / total * 100) + '%';
+
+    const statsSummary = document.getElementById('statsSummary');
+    const statsSummaryFiltered = document.getElementById('statsSummaryFiltered');
+    if (statsSummary) statsSummary.textContent = `Pass: ${pass}, Fail: ${fail}, Brak statusu: ${unknown}`;
+    if (statsSummaryFiltered) statsSummaryFiltered.textContent = `Wyświetlane: ${applyFilters(testCases).length}`;
 }
 
-// ------------------- Wykresy -------------------
 let statusChart, trendChart;
 function updateCharts() {
     const { pass, fail, unknown } = countStats();
-    trendData.push({ time: new Date().toLocaleTimeString(), total: testCases.length });
-    if (trendData.length > 20) trendData.shift();
 
-    // Status Chart
     if (!statusChart && document.getElementById('statusChart')) {
         statusChart = new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
-            data: { labels: ['Pass','Fail','Brak'], datasets: [{ data: [pass,fail,unknown], backgroundColor: ['#4caf50','#f44336','#9e9e9e'] }] }
+            data: { labels: ['Pass', 'Fail', 'Brak'], datasets: [{ data: [pass, fail, unknown], backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'] }] }
         });
     } else if (statusChart) {
-        statusChart.data.datasets[0].data = [pass,fail,unknown];
+        statusChart.data.datasets[0].data = [pass, fail, unknown];
         statusChart.update();
     }
 
-    // Trend Chart
     if (!trendChart && document.getElementById('trendChart')) {
         trendChart = new Chart(document.getElementById('trendChart'), {
             type: 'line',
-            data: { labels: trendData.map(d=>d.time), datasets:[{ label:'Łączna liczba testów', data: trendData.map(d=>d.total), borderColor:'#007bff', fill:false }]},
-            options:{ responsive:true, maintainAspectRatio:false }
+            data: { labels: trendData.map(d => d.time), datasets: [{ label: 'Łączna liczba testów', data: trendData.map(d => d.total), borderColor: '#007bff', fill: false }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
     } else if (trendChart) {
-        trendChart.data.labels = trendData.map(d=>d.time);
-        trendChart.data.datasets[0].data = trendData.map(d=>d.total);
+        trendChart.data.labels = trendData.map(d => d.time);
+        trendChart.data.datasets[0].data = trendData.map(d => d.total);
         trendChart.update();
     }
 }
 
-// ------------------- Import / Export CSV / PDF -------------------
+function snapshotTrend() {
+    trendData.push({ time: new Date().toLocaleTimeString(), total: testCases.length });
+    if (trendData.length > 20) trendData.shift();
+}
+
+// ------------------- Import / Export -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile')?.files[0];
     if (!file) return alert('Wybierz plik CSV');
     const reader = new FileReader();
     reader.onload = e => {
-        const lines = e.target.result.split('\n').filter(l=>l.trim());
-        const arr = lines.slice(1).map(l=>{
-            const [title, desc] = l.split(',');
-            return { title, desc, status:'', priority:'', notes:'', history:[`Zaimportowano: ${new Date().toLocaleString()}`] };
+        const lines = e.target.result.split('\n').filter(l => l.trim());
+        const arr = lines.slice(1).map(l => {
+            const [id, name, desc, steps, expected, status, notes, priority] = l.split(',');
+            return { id, name, desc, steps, expected, status, notes, priority, history: [`Zaimportowano: ${new Date().toLocaleString()}`] };
         });
         testCases = arr;
-        localStorage.setItem("testCases", JSON.stringify(testCases));
+        setAllTestCases(testCases);
+        snapshotTrend();
         renderTable();
     };
     reader.readAsText(file);
 }
 
 function exportToCSV() {
-    let csv = "Tytuł,Opis\n";
-    testCases.forEach(tc=>{
-        const title = `"${tc.title.replace(/"/g,'""')}"`;
-        const desc = `"${tc.desc.replace(/"/g,'""')}"`;
-        csv += `${title},${desc}\n`;
+    let csv = "ID testu,Nazwa testu,Opis,Kroki,Oczekiwany rezultat,Status,Uwagi,Priorytet\n";
+    testCases.forEach(tc => {
+        const steps = `"${tc.steps.replace(/"/g, '""')}"`;
+        const expected = `"${tc.expected.replace(/"/g, '""')}"`;
+        csv += [tc.id, tc.name, tc.desc, steps, expected, tc.status, tc.notes, tc.priority].join(',') + '\n';
     });
-    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "testcases.csv";
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'testcases.csv';
     a.click();
 }
 
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFont("helvetica","normal"); // polskie znaki
-    const body = testCases.map(tc=>[tc.title,tc.desc]);
+    const doc = new jsPDF('p', 'pt', 'a4');
+    doc.setFont("helvetica", "normal");
     doc.autoTable({
-        head:[["Tytuł","Opis"]],
-        body,
-        styles:{ font:"helvetica", fontSize:10, cellPadding:2 }
+        head: [['ID', 'Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
+        body: testCases.map(tc => [
+            tc.id, tc.name, tc.desc,
+            tc.steps.replace(/\n/g, '\n• '),
+            tc.expected.replace(/\n/g, '\n• '),
+            tc.status, tc.notes, tc.priority
+        ]),
+        styles: { cellPadding: 2, fontSize: 10 }
     });
-    doc.save("testcases.pdf");
+    doc.save('testcases.pdf');
 }
+
+// ------------------- Init -------------------
+document.addEventListener('DOMContentLoaded', () => {
+    if (testForm) {
+        testCases = getAllTestCases();
+        snapshotTrend();
+        renderTable();
+    }
+});
