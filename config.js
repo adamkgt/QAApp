@@ -11,10 +11,6 @@ const firebaseConfig = {
 // 🔹 Inicjalizacja Firebase
 firebase.initializeApp(firebaseConfig);
 
-// TYLKO RAZ deklarujemy auth i db
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 // 🔹 Eksport do innych plików (żeby script.js miał dostęp)
 window.auth = auth;
 window.db = db;
