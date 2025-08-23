@@ -47,6 +47,21 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 });
 
 
+
+const db = firebase.firestore();
+
+// dodanie dokumentu automatycznie tworzy kolekcję, jeśli nie istnieje
+db.collection("testCases").add({
+    uid: auth.currentUser.uid,
+    testId: "TC-001",
+    name: "Logowanie",
+    description: "Test logowania",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+});
+
+
+  
+
     // ------------------- CRUD Test Cases -------------------
     let testCases = [];
     let sortKey = '';
@@ -319,6 +334,7 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
         renderTable();
     });
 }
+
 
 
 
