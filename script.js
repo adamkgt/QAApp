@@ -46,37 +46,63 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
   });
 });
 
+// script.js
 
+// Logowanie (index.html)
+if (document.getElementById("loginForm")) {
+  document.getElementById("loginForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-const db = firebase.firestore();
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => window.location.href = "app.html")
+      .catch(error => {
+        document.getElementById("errorMsg").textContent = "Błąd: " + error.message;
+        document.getElementById("errorMsg").style.display = "block";
+      });
+  });
+}
 
-function saveTestCase() {
+// Ochrona strony app.html i wylogowanie
+if (document.getElementById("testForm")) {
+  auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = 'index.html';
+    else renderTable(); // pobierz testy zalogowanego użytkownika
+  });
+
+  function logout() {
+    auth.signOut().then(() => window.location.href = 'index.html');
+  }
+
+  // Zapis test case
+  window.saveTestCase = function() {
     const user = auth.currentUser;
-    if (!user) return alert("Użytkownik nie jest zalogowany!");
+    if (!user) return alert("Nie jesteś zalogowany!");
 
     const testCase = {
-        uid: user.uid,
-        testId: document.getElementById("testId").value,
-        name: document.getElementById("testName").value,
-        description: document.getElementById("testDesc").value,
-        steps: document.getElementById("testSteps").value,
-        expectedResult: document.getElementById("expectedResult").value,
-        status: document.getElementById("testStatus").value,
-        notes: document.getElementById("testNotes").value,
-        priority: document.getElementById("testPriority").value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      uid: user.uid,
+      testId: document.getElementById("testId").value,
+      name: document.getElementById("testName").value,
+      description: document.getElementById("testDesc").value,
+      steps: document.getElementById("testSteps").value,
+      expectedResult: document.getElementById("expectedResult").value,
+      status: document.getElementById("testStatus").value,
+      notes: document.getElementById("testNotes").value,
+      priority: document.getElementById("testPriority").value,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     db.collection("testCases").add(testCase)
-        .then(() => {
-            alert("Przypadek testowy zapisany!");
-            renderTable();
-            resetForm();
-        })
-        .catch(err => console.error("Błąd przy zapisie:", err));
-}
+      .then(() => {
+        renderTable();
+        resetForm();
+      })
+      .catch(err => console.error("Błąd przy zapisie:", err));
+  };
 
-function renderTable() {
+  // Pobierz testy użytkownika
+  window.renderTable = function() {
     const user = auth.currentUser;
     if (!user) return;
 
@@ -85,34 +111,41 @@ function renderTable() {
       .orderBy("timestamp", "desc")
       .get()
       .then(snapshot => {
-          const tbody = document.querySelector("#testTable tbody");
-          tbody.innerHTML = "";
-          snapshot.forEach(doc => {
-              const data = doc.data();
-              const tr = document.createElement("tr");
-              tr.innerHTML = `
-                  <td>${data.testId}</td>
-                  <td>${data.name}</td>
-                  <td>${data.description}</td>
-                  <td>${data.steps}</td>
-                  <td>${data.expectedResult}</td>
-                  <td>${data.status || ""}</td>
-                  <td>${data.notes || ""}</td>
-                  <td>${data.priority || ""}</td>
-                  <td>
-                      <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${doc.id}')">Usuń</button>
-                  </td>
-              `;
-              tbody.appendChild(tr);
-          });
+        const tbody = document.querySelector("#testTable tbody");
+        tbody.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${data.testId}</td>
+            <td>${data.name}</td>
+            <td>${data.description}</td>
+            <td>${data.steps}</td>
+            <td>${data.expectedResult}</td>
+            <td>${data.status || ""}</td>
+            <td>${data.notes || ""}</td>
+            <td>${data.priority || ""}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteTestCase('${doc.id}')">Usuń</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
       });
-}
+  };
 
-function deleteTestCase(docId) {
+  // Usuń test case
+  window.deleteTestCase = function(docId) {
     db.collection("testCases").doc(docId).delete()
       .then(() => renderTable())
-      .catch(err => console.error("Błąd przy usuwaniu:", err));
+      .catch(err => console.error(err));
+  };
+
+  // Reset formularza
+  window.resetForm = function() {
+    document.getElementById("testForm").reset();
+  };
 }
+
+
 
 
   
@@ -389,6 +422,7 @@ function deleteTestCase(docId) {
         renderTable();
     });
 }
+
 
 
 
