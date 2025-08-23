@@ -1,32 +1,41 @@
 import { firebaseConfig } from "./config.js";
 
+// Inicjalizacja Firebase z config.js
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 // ------------------- Logowanie (index.html) -------------------
 if (document.getElementById("loginForm")) {
-    document.getElementById("loginForm").addEventListener("submit", function (e) {
-        e.preventDefault();
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
+  document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => window.location.href = "app.html")
-            .catch(error => {
-                document.getElementById("errorMsg").textContent = "Błąd: " + error.message;
-            });
-    });
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        window.location.href = "app.html";
+      })
+      .catch(error => {
+        document.getElementById("errorMsg").textContent = "Błąd: " + error.message;
+      });
+  });
 }
 
 // ------------------- Ochrona strony i wylogowanie (app.html) -------------------
 if (document.getElementById("testForm")) {
-    auth.onAuthStateChanged(user => {
-        if (!user) window.location.href = "index.html";
-    });
+  auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = "index.html";
+  });
 
-    window.logout = function () {
-        auth.signOut().then(() => window.location.href = "index.html");
-    }
+  function logout() {
+    auth.signOut().then(() => window.location.href = "index.html");
+  }
+
+  // Upewnij się, że logout podpięty do guzika
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
 }
 
 
@@ -302,5 +311,6 @@ if (document.getElementById("testForm")) {
         renderTable();
     });
 }
+
 
 
