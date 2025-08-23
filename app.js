@@ -321,18 +321,50 @@ function exportToCSV() {
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+
+    // Nagłówki tabeli
+    const head = [['ID', 'Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']];
+
+    // Body z wrapowaniem i polskimi znakami
+    const body = testCases.map(tc => [
+        tc.id,
+        tc.name,
+        tc.desc,
+        tc.steps ? tc.steps.split('\n').map(line => '• ' + line).join('\n') : '',
+        tc.expected ? tc.expected.split('\n').map(line => '• ' + line).join('\n') : '',
+        tc.status,
+        tc.notes,
+        tc.priority
+    ]);
+
+    doc.setFont("times", ""); // Times obsługuje polskie znaki
+    doc.setFontSize(10);
+
+    // Dynamiczna szerokość kolumn
+    const pageWidth = doc.internal.pageSize.getWidth() - 20; // margines 10 po obu stronach
+    const colWidths = [15, 25, 30, 35, 35, 15, 20, 15]; // przybliżone wymiary kolumn
+    const totalWidth = colWidths.reduce((a, b) => a + b, 0);
+    const scale = pageWidth / totalWidth;
+    const scaledColWidths = colWidths.map(w => w * scale);
+
     doc.autoTable({
-        head: [['ID', 'Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
-        body: testCases.map(tc => [
-            tc.id, tc.name, tc.desc,
-            tc.steps.replace(/\n/g, '\n• '),
-            tc.expected.replace(/\n/g, '\n• '),
-            tc.status, tc.notes, tc.priority
-        ]),
-        styles: { cellPadding: 2, fontSize: 10 }
+        head: head,
+        body: body,
+        styles: {
+            cellPadding: 2,
+            font: "times",
+            fontSize: 10,
+            overflow: 'linebreak',
+            valign: 'top' // automatyczna wysokość wiersza
+        },
+        headStyles: { fillColor: [41, 128, 185], halign: 'center', textColor: 255 },
+        columnStyles: scaledColWidths.reduce((acc, w, i) => { acc[i] = { cellWidth: w }; return acc; }, {}),
+        margin: { top: 20, left: 10, right: 10 },
     });
+
     doc.save('testcases.pdf');
 }
+
 
 // ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', () => {
