@@ -54,6 +54,15 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.href = 'index.html';
+    } else {
+        currentUser = user;
+        renderTable();
+    }
+});
+
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
@@ -464,6 +473,7 @@ function resetForm(){
         renderTable();
     });
 }
+
 
 
 
