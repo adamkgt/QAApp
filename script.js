@@ -1,4 +1,7 @@
 
+// ------------------- Firebase -------------------
+const auth = firebase.auth();
+const db = firebase.firestore();
 let currentUser = null;
 
 // ------------------- Elementy DOM -------------------
@@ -34,7 +37,9 @@ if (testForm || logoutBtn) {
 
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
-            auth.signOut().then(() => window.location.href = "index.html");
+            auth.signOut()
+                .then(() => window.location.href = "index.html")
+                .catch(err => console.error("Błąd wylogowania:", err));
         });
     }
 }
@@ -47,6 +52,7 @@ let trendData = [];
 
 function getAllTestCases() { return JSON.parse(localStorage.getItem('testCases') || '[]'); }
 function setAllTestCases(data) { localStorage.setItem('testCases', JSON.stringify(data)); }
+
 function resetForm() {
     if (!testForm) return;
     testForm.reset();
@@ -61,8 +67,8 @@ function formatList(text) {
 
 // ------------------- CRUD funkcje -------------------
 function saveTestCase() {
-    let index = document.getElementById('editIndex').value;
-    let testCase = {
+    const index = document.getElementById('editIndex').value;
+    const testCase = {
         id: document.getElementById('testId').value,
         name: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
@@ -78,7 +84,7 @@ function saveTestCase() {
         testCase.history.push(`Utworzono: ${new Date().toLocaleString()}`);
         testCases.push(testCase);
     } else {
-        let old = { ...testCases[index] };
+        const old = { ...testCases[index] };
         testCase.history = old.history || [];
         testCase.history.push(`Edytowano: ${new Date().toLocaleString()}`);
         testCases[index] = testCase;
@@ -138,7 +144,7 @@ function showHistory(idx) {
     new bootstrap.Modal(document.getElementById('historyModal')).show();
 }
 
-// ------------------- Filtry, sortowanie i statystyki -------------------
+// ------------------- Filtry, sortowanie, statystyki -------------------
 function sortBy(key) {
     if (sortKey === key) sortAsc = !sortAsc;
     else { sortKey = key; sortAsc = true; sortKey = key; }
@@ -153,9 +159,9 @@ function clearFilters() {
 }
 
 function applyFilters(data) {
-    const status = document.getElementById('statusFilter').value;
-    const priority = document.getElementById('priorityFilter').value;
-    const query = document.getElementById('searchQuery').value.toLowerCase();
+    const status = document.getElementById('statusFilter')?.value || 'all';
+    const priority = document.getElementById('priorityFilter')?.value || 'all';
+    const query = document.getElementById('searchQuery')?.value.toLowerCase() || '';
     return data.filter(tc => {
         if (status !== 'all' && tc.status !== status) return false;
         if (priority !== 'all' && tc.priority !== priority) return false;
@@ -164,6 +170,7 @@ function applyFilters(data) {
     });
 }
 
+// ------------------- Render tabeli -------------------
 function renderTable() {
     testCases = getAllTestCases();
     let data = applyFilters(testCases);
@@ -190,17 +197,17 @@ function renderTable() {
         <td>${formatList(tc.steps)}</td>
         <td>${formatList(tc.expected)}</td>
         <td>
-          ${tc.status === 'Pass' ? '<span class="badge pass-badge" title="Test zaliczony">Pass</span>' : ''}
-          ${tc.status === 'Fail' ? '<span class="badge fail-badge" title="Test niezaliczony">Fail</span>' : ''}
+          ${tc.status === 'Pass' ? '<span class="badge pass-badge">Pass</span>' : ''}
+          ${tc.status === 'Fail' ? '<span class="badge fail-badge">Fail</span>' : ''}
           ${!tc.status ? '<span class="badge unknown-badge">Brak</span>' : ''}
         </td>
         <td>${tc.notes}</td>
         <td>${tc.priority || ''}</td>
         <td class="nowrap">
-          <button class="btn btn-sm btn-primary" title="Edytuj" onclick="editTestCase(${idx})"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-danger" title="Usuń" onclick="deleteTestCase(${idx})"><i class="bi bi-trash"></i></button>
-          <button class="btn btn-sm btn-warning" title="Krytyczny" onclick="setCritical(${idx})"><i class="bi bi-exclamation-triangle"></i></button>
-          <button class="btn btn-sm btn-info" title="Historia" onclick="showHistory(${idx})"><i class="bi bi-clock-history"></i></button>
+          <button class="btn btn-sm btn-primary" onclick="editTestCase(${idx})">Edytuj</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${idx})">Usuń</button>
+          <button class="btn btn-sm btn-warning" onclick="setCritical(${idx})">Krytyczny</button>
+          <button class="btn btn-sm btn-info" onclick="showHistory(${idx})">Historia</button>
         </td>`;
         tbody.appendChild(tr);
     });
@@ -209,6 +216,7 @@ function renderTable() {
     updateCharts();
 }
 
+// ------------------- Statystyki -------------------
 function countStats() {
     let pass = 0, fail = 0, unknown = 0;
     testCases.forEach(tc => {
@@ -326,5 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable();
     }
 });
+
 
 
