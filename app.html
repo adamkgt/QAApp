@@ -154,14 +154,21 @@
     <h4 class="mt-4">Import / Eksport</h4>
     <div class="row g-2">
       <div class="col-md-6"><input type="file" id="csvFile" class="form-control" accept=".csv" /></div>
-      <div class="col-md-6 d-flex gap-2">
-        <button onclick="importFromCSV()" class="btn btn-secondary"><i class="bi bi-file-earmark-arrow-up"></i> Importuj CSV</button>
-        <button onclick="exportToCSV()" class="btn btn-secondary"><i class="bi bi-file-earmark-arrow-down"></i> Eksportuj CSV</button>
-        <button onclick="exportToPDF()" class="btn btn-danger"><i class="bi bi-file-earmark-pdf"></i> Eksportuj PDF</button>
-      </div>
+<div class="col-md-6 d-flex gap-2">
+  <button id="importCSVBtn" class="btn btn-secondary">
+    <i class="bi bi-file-earmark-arrow-up"></i> Importuj CSV
+  </button>
+  <button onclick="exportToCSV()" class="btn btn-secondary">
+    <i class="bi bi-file-earmark-arrow-down"></i> Eksportuj CSV
+  </button>
+  <button onclick="exportToPDF()" class="btn btn-danger">
+    <i class="bi bi-file-earmark-pdf"></i> Eksportuj PDF
+  </button>
+</div>
     </div>
 
   </div>
 </body>
 </html>
+
 
