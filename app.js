@@ -9,49 +9,53 @@ let trendData = [];
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const userPanel = document.getElementById("userPanel");
 
-// ------------------- Panel użytkownika -------------------
-function renderUserPanel() {
-    if (!currentUser || !userPanel) return;
-    userPanel.innerHTML = `
-        <span class="me-2">${currentUser.email}</span>
-        <button id="changePasswordBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
-    });
-
-    document.getElementById("changePasswordBtn").addEventListener("click", () => {
-        const newPassword = prompt("Podaj nowe hasło:");
-        if (newPassword) {
-            currentUser.updatePassword(newPassword)
-                .then(() => alert("Hasło zostało zmienione!"))
-                .catch(err => alert("Błąd: " + err.message));
-        }
-    });
-}
-
-// ------------------- Ochrona strony -------------------
+// ------------------- Ochrona strony i panel użytkownika -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
     } else {
         currentUser = user;
+
+        // Inicjalizacja testów
+        testCases = getAllTestCases();
+        snapshotTrend();
+        renderTable();
+
+        // Panel użytkownika
         renderUserPanel();
-        loadTestCases();
     }
 });
 
-// ------------------- CRUD lokalny (localStorage) -------------------
-function getAllTestCases() { return JSON.parse(localStorage.getItem('testCases') || '[]'); }
-function setAllTestCases(data) { localStorage.setItem('testCases', JSON.stringify(data)); }
-function resetForm() {
-    if (!testForm) return;
-    testForm.reset();
-    document.getElementById('editIndex').value = '';
+// ------------------- Funkcje panelu użytkownika -------------------
+function renderUserPanel() {
+    const headerContainer = document.querySelector(".header-container");
+    if (!headerContainer || !currentUser) return;
+
+    const panel = document.createElement("div");
+    panel.id = "userPanel";
+    panel.className = "d-flex align-items-center gap-2";
+
+    panel.innerHTML = `
+        <span class="fw-bold">${currentUser.email}</span>
+        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Edytuj hasło</button>
+        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
+    `;
+
+    headerContainer.appendChild(panel);
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        auth.signOut().then(() => window.location.href = "index.html");
+    });
+
+    document.getElementById("editProfileBtn").addEventListener("click", () => {
+        const newPassword = prompt("Podaj nowe hasło:");
+        if (newPassword) {
+            currentUser.updatePassword(newPassword)
+                .then(() => alert("Hasło zmienione pomyślnie"))
+                .catch(err => alert("Błąd: " + err.message));
+        }
+    });
 }
 
 // ------------------- CRUD funkcje -------------------
