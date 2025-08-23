@@ -5,8 +5,6 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
-let statusChart = null;
-let unsubscribeTestCases = null;
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
@@ -14,7 +12,7 @@ const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
-// ------------------- Panel użytkownika -------------------
+// ------------------- Funkcje użytkownika -------------------
 function renderUserPanel() {
     const userPanel = document.getElementById('userPanel');
     if (!userPanel || !currentUser) return;
@@ -43,32 +41,26 @@ function renderUserPanel() {
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
-    } else if (!currentUser) {
+    } else {
         currentUser = user;
         renderUserPanel();
         loadTestCases();
     }
 });
 
-// ------------------- Ładowanie przypadków testowych -------------------
 function loadTestCases() {
-    db.collection('Users')
-      .doc(currentUser.uid)
-      .collection('testCases')
+    db.collection('Users').doc(currentUser.uid).collection('testCases')
       .onSnapshot(snapshot => {
           testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderTable();
       }, err => console.error(err));
 }
 
-
 // ------------------- CRUD -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
-    const testName = document.getElementById('testName').value; // użyjemy jako ID dokumentu
-
     const data = {
-        name: testName,
+        name: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
@@ -78,14 +70,19 @@ function saveTestCase() {
         history: [`${index === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
-    const userDocRef = db.collection('Users').doc(currentUser.uid);
-    const testCaseDocRef = userDocRef.collection('testCases').doc(testName);
+    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
 
-    testCaseDocRef.set(data, { merge: true }) // merge: true pozwala aktualizować bez nadpisywania całego dokumentu
-        .then(() => resetForm())
-        .catch(err => alert('Błąd zapisu: ' + err.message));
+    if (index === '') {
+        // Tworzenie dokumentu o nazwie tytułu testu
+        testCasesRef.doc(data.name).set(data)
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
+    } else {
+        testCasesRef.doc(index).update(data)
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
+    }
 }
-
 
 function editTestCase(id) {
     const tc = testCases.find(tc => tc.id === id);
@@ -102,12 +99,13 @@ function editTestCase(id) {
 
 function deleteTestCase(id) {
     if (!confirm('Na pewno usunąć ten test?')) return;
-    db.collection('testCases').doc(id).delete();
+    db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete();
 }
 
 function deleteAllTestCases() {
     if (!confirm('Na pewno usunąć wszystkie testy?')) return;
-    testCases.forEach(tc => db.collection('testCases').doc(tc.id).delete());
+    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
+    testCases.forEach(tc => testCasesRef.doc(tc.id).delete());
 }
 
 function resetForm() {
@@ -143,13 +141,17 @@ function sortBy(key) {
 }
 
 // ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
+let statusChart;
+
 function renderTable() {
     let data = applyFilters([...testCases]);
 
     if (sortKey) {
         data.sort((a, b) => {
             const va = a[sortKey] || '', vb = b[sortKey] || '';
-            return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
         });
     }
 
@@ -160,18 +162,17 @@ function renderTable() {
     data.forEach(tc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${tc.name}</td>
-            <td>${tc.desc}</td>
-            <td>${tc.steps}</td>
-            <td>${tc.expected}</td>
-            <td>${tc.status}</td>
-            <td>${tc.notes}</td>
-            <td>${tc.priority}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
-            </td>
-        `;
+        <td>${tc.name}</td>
+        <td>${tc.desc}</td>
+        <td>${tc.steps}</td>
+        <td>${tc.expected}</td>
+        <td>${tc.status}</td>
+        <td>${tc.notes}</td>
+        <td>${tc.priority}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
+        </td>`;
         tbody.appendChild(tr);
     });
 
@@ -192,6 +193,7 @@ function countStats() {
 function updateStats() {
     const { pass, fail, unknown } = countStats();
     const total = testCases.length || 1;
+
     document.getElementById('barPass').style.width = (pass / total * 100) + '%';
     document.getElementById('barFail').style.width = (fail / total * 100) + '%';
     document.getElementById('barUnknown').style.width = (unknown / total * 100) + '%';
@@ -199,21 +201,13 @@ function updateStats() {
 
 function updateCharts() {
     const { pass, fail, unknown } = countStats();
-    const ctx = document.getElementById('statusChart');
-    if (!ctx) return;
 
-    if (!statusChart) {
-        statusChart = new Chart(ctx, {
+    if (!statusChart && document.getElementById('statusChart')) {
+        statusChart = new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
-            data: {
-                labels: ['Pass', 'Fail', 'Brak'],
-                datasets: [{
-                    data: [pass, fail, unknown],
-                    backgroundColor: ['#4caf50', '#f44336', '#9e9e9e']
-                }]
-            }
+            data: { labels: ['Pass', 'Fail', 'Brak'], datasets: [{ data: [pass, fail, unknown], backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'] }] }
         });
-    } else {
+    } else if (statusChart) {
         statusChart.data.datasets[0].data = [pass, fail, unknown];
         statusChart.update();
     }
@@ -240,16 +234,25 @@ function exportToPDF() {
     doc.setFontSize(10);
     doc.autoTable({
         head: [['Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
-        body: testCases.map(tc => [tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority]),
+        body: testCases.map(tc => [
+            tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority
+        ]),
         styles: { cellPadding: 2, fontSize: 10 }
     });
     doc.save('testcases.pdf');
 }
 
-// ------------------- Inicjalizacja -------------------
+// ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', () => {
-    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
-    if (statusFilter) statusFilter.addEventListener('change', renderTable);
-    if (priorityFilter) priorityFilter.addEventListener('change', renderTable);
-    if (searchQuery) searchQuery.addEventListener('input', renderTable);
+    if (testForm) {
+        testForm.addEventListener('submit', e => {
+            e.preventDefault();
+            saveTestCase();
+        });
+    }
+    if (statusFilter && priorityFilter && searchQuery) {
+        statusFilter.addEventListener('change', renderTable);
+        priorityFilter.addEventListener('change', renderTable);
+        searchQuery.addEventListener('input', renderTable);
+    }
 });
