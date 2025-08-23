@@ -77,14 +77,26 @@ function saveTestCase() {
         history: [`${docId === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
-    if (docId === '') {
+    if (!docId) {
+        // Tworzymy nowy dokument
         db.collection('testCases').add(data)
-          .then(() => resetForm())
-          .catch(err => alert('Błąd zapisu: ' + err.message));
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
     } else {
-        db.collection('testCases').doc(docId).update(data)
-          .then(() => resetForm())
-          .catch(err => alert('Błąd zapisu: ' + err.message));
+        // Aktualizujemy istniejący dokument
+        db.collection('testCases').doc(docId).get()
+          .then(docSnap => {
+              if (docSnap.exists) {
+                  db.collection('testCases').doc(docId).update(data)
+                    .then(() => resetForm())
+                    .catch(err => alert('Błąd aktualizacji: ' + err.message));
+              } else {
+                  alert('Dokument nie istnieje, tworzenie nowego.');
+                  db.collection('testCases').doc(docId).set(data)
+                    .then(() => resetForm())
+                    .catch(err => alert('Błąd zapisu: ' + err.message));
+              }
+          });
     }
 }
 
