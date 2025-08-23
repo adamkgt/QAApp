@@ -67,7 +67,7 @@ if (document.getElementById("loginForm")) {
 
 // --- Strona app.html ---
 if (document.getElementById("testForm")) {
-  
+
   // Ochrona strony i wylogowanie
   auth.onAuthStateChanged(user => {
     if (!user) window.location.href = 'index.html';
@@ -104,7 +104,7 @@ if (document.getElementById("testForm")) {
       .catch(err => console.error("Błąd przy zapisie:", err));
   };
 
-  // --- Renderowanie tabeli tylko dla aktualnego użytkownika ---
+  // --- Renderowanie tabeli tylko dla zalogowanego użytkownika ---
   window.renderTable = function() {
     const user = auth.currentUser;
     if (!user) return;
@@ -147,6 +147,7 @@ if (document.getElementById("testForm")) {
     document.getElementById("testForm").reset();
   };
 }
+
 
 
 
@@ -426,6 +427,7 @@ if (document.getElementById("testForm")) {
         renderTable();
     });
 }
+
 
 
 
