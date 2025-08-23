@@ -214,6 +214,51 @@ function updateCharts() {
 }
 
 // ------------------- Import / Export -------------------
+function importFromCSV() {
+    const fileInput = document.getElementById('csvFile');
+    if (!fileInput.files.length) return alert('Wybierz plik CSV!');
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        const headers = lines[0].split(',').map(h => h.trim());
+
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const data = {};
+            headers.forEach((h, idx) => data[h] = values[idx] || '');
+            
+            // Dodaj pola dodatkowe
+            data.owner = currentUser.uid;
+            data.history = [`Utworzono: ${new Date().toLocaleString()}`];
+
+            // Tworzenie dokumentu w Firestore
+            try {
+                await db.collection('Users')
+                        .doc(currentUser.uid)
+                        .collection('testCases')
+                        .doc(data.name)  // używamy nazwy jako ID dokumentu
+                        .set(data);
+            } catch (err) {
+                console.error('Błąd zapisu CSV:', err);
+            }
+        }
+        alert('Import zakończony!');
+        loadTestCases(); // odśwież tabelę
+    };
+
+    reader.readAsText(file);
+}
+
+
+
+
+
+
+
 function exportToCSV() {
     let csv = "Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
     testCases.forEach(tc => {
