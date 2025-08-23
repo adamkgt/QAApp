@@ -48,7 +48,7 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 
 // script.js
 
-// Logowanie (index.html)
+// --- Logowanie (index.html) ---
 if (document.getElementById("loginForm")) {
   document.getElementById("loginForm").addEventListener("submit", function(e) {
     e.preventDefault();
@@ -58,24 +58,27 @@ if (document.getElementById("loginForm")) {
     auth.signInWithEmailAndPassword(email, password)
       .then(() => window.location.href = "app.html")
       .catch(error => {
-        document.getElementById("errorMsg").textContent = "Błąd: " + error.message;
-        document.getElementById("errorMsg").style.display = "block";
+        const errorMsg = document.getElementById("errorMsg");
+        errorMsg.textContent = "Błąd: " + error.message;
+        errorMsg.style.display = "block";
       });
   });
 }
 
-// Ochrona strony app.html i wylogowanie
+// --- Strona app.html ---
 if (document.getElementById("testForm")) {
+  
+  // Ochrona strony i wylogowanie
   auth.onAuthStateChanged(user => {
     if (!user) window.location.href = 'index.html';
-    else renderTable(); // pobierz testy zalogowanego użytkownika
+    else renderTable();
   });
 
-  function logout() {
+  window.logout = function() {
     auth.signOut().then(() => window.location.href = 'index.html');
-  }
+  };
 
-  // Zapis test case
+  // --- Dodawanie test case ---
   window.saveTestCase = function() {
     const user = auth.currentUser;
     if (!user) return alert("Nie jesteś zalogowany!");
@@ -101,7 +104,7 @@ if (document.getElementById("testForm")) {
       .catch(err => console.error("Błąd przy zapisie:", err));
   };
 
-  // Pobierz testy użytkownika
+  // --- Renderowanie tabeli tylko dla aktualnego użytkownika ---
   window.renderTable = function() {
     const user = auth.currentUser;
     if (!user) return;
@@ -132,18 +135,19 @@ if (document.getElementById("testForm")) {
       });
   };
 
-  // Usuń test case
+  // --- Usuwanie test case ---
   window.deleteTestCase = function(docId) {
     db.collection("testCases").doc(docId).delete()
       .then(() => renderTable())
       .catch(err => console.error(err));
   };
 
-  // Reset formularza
+  // --- Reset formularza ---
   window.resetForm = function() {
     document.getElementById("testForm").reset();
   };
 }
+
 
 
 
@@ -422,6 +426,7 @@ if (document.getElementById("testForm")) {
         renderTable();
     });
 }
+
 
 
 
