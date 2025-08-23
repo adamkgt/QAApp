@@ -9,32 +9,9 @@ let trendData = [];
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const userPanelContainer = document.getElementById("userPanel");
+const userPanel = document.getElementById("userPanel");
 
-// ------------------- Panel użytkownika -------------------
-function renderUserPanel() {
-    if (!currentUser || !userPanelContainer) return;
-    userPanelContainer.innerHTML = `
-        <span>${currentUser.email}</span>
-        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
-    });
-
-    document.getElementById("editProfileBtn").addEventListener("click", () => {
-        const newPassword = prompt("Wprowadź nowe hasło:");
-        if (newPassword) {
-            currentUser.updatePassword(newPassword)
-                .then(() => alert("Hasło zmienione pomyślnie"))
-                .catch(err => alert("Błąd: " + err.message));
-        }
-    });
-}
-
-// ------------------- Ochrona strony i ładowanie danych -------------------
+// ------------------- Ochrona strony i pobieranie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
@@ -44,6 +21,43 @@ auth.onAuthStateChanged(user => {
         loadTestCases();
     }
 });
+
+// ------------------- Funkcja wczytująca testy -------------------
+function loadTestCases() {
+    db.collection('testCases')
+      .where('owner', '==', currentUser.uid) // tylko własne testy
+      //.orderBy('createdAt', 'desc') // tymczasowo wyłączone, żeby uniknąć błędu indeksu
+      .onSnapshot(snapshot => {
+          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderTable();
+      }, err => {
+          console.error("Błąd Firestore:", err);
+          alert("Nie udało się pobrać testów: " + err.message);
+      });
+}
+
+// ------------------- Render panelu użytkownika -------------------
+function renderUserPanel() {
+    if (!userPanel) return;
+    userPanel.innerHTML = `
+        <span class="me-2">${currentUser.email}</span>
+        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
+        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
+    `;
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        auth.signOut().then(() => window.location.href = "index.html");
+    });
+
+    document.getElementById("editProfileBtn").addEventListener("click", () => {
+        const newPass = prompt("Podaj nowe hasło:");
+        if (newPass) {
+            currentUser.updatePassword(newPass)
+                .then(() => alert("Hasło zmienione"))
+                .catch(err => alert("Błąd: " + err.message));
+        }
+    });
+}
 
 // ------------------- Funkcje CRUD -------------------
 function loadTestCases() {
