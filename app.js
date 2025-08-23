@@ -214,31 +214,46 @@ function updateCharts() {
 }
 
 // ------------------- Import / Export -------------------
-document.addEventListener('DOMContentLoaded', () => {
-    if (testForm) {
-        testForm.addEventListener('submit', e => {
-            e.preventDefault();
-            saveTestCase();
-        });
-    }
-    if (statusFilter && priorityFilter && searchQuery) {
-        statusFilter.addEventListener('change', renderTable);
-        priorityFilter.addEventListener('change', renderTable);
-        searchQuery.addEventListener('input', renderTable);
-    }
+function importFromCSV() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) return;
 
-    const csvFileInput = document.getElementById('csvFile');
-    const importBtn = document.querySelector('button[onclick="importFromCSV()"]');
-    if (importBtn) {
-        importBtn.addEventListener('click', () => {
-            if (!csvFileInput || !csvFileInput.files.length) {
-                alert('Nie wybrano pliku CSV!');
-                return;
-            }
-            importFromCSV();
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l => l.trim() !== '');
+        lines.shift(); // pomija nagłówek
+
+        lines.forEach(line => {
+            const [name, desc, steps, expected, status, notes, priority] = line.split(',');
+            if (!name) return;
+
+            const data = {
+                name: name.replace(/"/g,'').trim(),
+                desc: desc.replace(/"/g,'').trim(),
+                steps: steps.replace(/"/g,'').trim(),
+                expected: expected.replace(/"/g,'').trim(),
+                status: status.replace(/"/g,'').trim(),
+                notes: notes.replace(/"/g,'').trim(),
+                priority: priority.replace(/"/g,'').trim(),
+                history: [`Import: ${new Date().toLocaleString()}`]
+            };
+
+            db.collection('Users')
+              .doc(currentUser.uid)
+              .collection('testCases')
+              .doc(data.name)
+              .set(data)
+              .catch(err => console.error('Błąd importu:', err));
         });
-    }
-});
+
+        loadTestCases();
+        alert('Import zakończony!');
+    };
+
+    reader.readAsText(file);
+}
+
 
 
 
