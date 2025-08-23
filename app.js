@@ -5,7 +5,8 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
-let statusChart;
+let statusChart = null;
+let unsubscribeTestCases = null;
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
@@ -15,18 +16,14 @@ const searchQuery = document.getElementById("searchQuery");
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
-    const header = document.querySelector('.d-flex.align-items-center.justify-content-between');
-    if (!header) return;
+    const userPanel = document.getElementById('userPanel');
+    if (!userPanel || !currentUser) return;
 
-    const userPanel = document.createElement('div');
-    userPanel.id = 'userPanel';
-    userPanel.className = 'd-flex gap-2 align-items-center';
     userPanel.innerHTML = `
         <span class="fw-bold">${currentUser.email}</span>
         <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
         <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
     `;
-    header.appendChild(userPanel);
 
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
@@ -46,25 +43,28 @@ function renderUserPanel() {
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
-    } else {
+    } else if (!currentUser) {
         currentUser = user;
         renderUserPanel();
         loadTestCases();
     }
 });
 
+// ------------------- Ładowanie przypadków testowych -------------------
 function loadTestCases() {
-    db.collection('testCases')
-      .where('owner', '==', currentUser.uid)
-      .onSnapshot(snapshot => {
-          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          renderTable();
-      }, err => console.error(err));
+    if (unsubscribeTestCases) unsubscribeTestCases();
+
+    unsubscribeTestCases = db.collection('testCases')
+        .where('owner', '==', currentUser.uid)
+        .onSnapshot(snapshot => {
+            testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTable();
+        }, err => console.error(err));
 }
 
 // ------------------- CRUD -------------------
 function saveTestCase() {
-    const docId = document.getElementById('editIndex').value;
+    const index = document.getElementById('editIndex').value;
     const data = {
         name: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
@@ -74,29 +74,17 @@ function saveTestCase() {
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
         owner: currentUser.uid,
-        history: [`${docId === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
+        history: [`${index === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
-    if (!docId) {
-        // Tworzymy nowy dokument
+    if (index === '') {
         db.collection('testCases').add(data)
             .then(() => resetForm())
             .catch(err => alert('Błąd zapisu: ' + err.message));
     } else {
-        // Aktualizujemy istniejący dokument
-        db.collection('testCases').doc(docId).get()
-          .then(docSnap => {
-              if (docSnap.exists) {
-                  db.collection('testCases').doc(docId).update(data)
-                    .then(() => resetForm())
-                    .catch(err => alert('Błąd aktualizacji: ' + err.message));
-              } else {
-                  alert('Dokument nie istnieje, tworzenie nowego.');
-                  db.collection('testCases').doc(docId).set(data)
-                    .then(() => resetForm())
-                    .catch(err => alert('Błąd zapisu: ' + err.message));
-              }
-          });
+        db.collection('testCases').doc(index).update(data)
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
     }
 }
 
@@ -155,7 +143,7 @@ function sortBy(key) {
     renderTable();
 }
 
-// ------------------- Renderowanie tabeli, statystyki, wykres -------------------
+// ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
 function renderTable() {
     let data = applyFilters([...testCases]);
 
@@ -173,17 +161,18 @@ function renderTable() {
     data.forEach(tc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-        <td>${tc.name}</td>
-        <td>${tc.desc}</td>
-        <td>${tc.steps}</td>
-        <td>${tc.expected}</td>
-        <td>${tc.status}</td>
-        <td>${tc.notes}</td>
-        <td>${tc.priority}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
-        </td>`;
+            <td>${tc.name}</td>
+            <td>${tc.desc}</td>
+            <td>${tc.steps}</td>
+            <td>${tc.expected}</td>
+            <td>${tc.status}</td>
+            <td>${tc.notes}</td>
+            <td>${tc.priority}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
+            </td>
+        `;
         tbody.appendChild(tr);
     });
 
@@ -211,13 +200,21 @@ function updateStats() {
 
 function updateCharts() {
     const { pass, fail, unknown } = countStats();
+    const ctx = document.getElementById('statusChart');
+    if (!ctx) return;
 
-    if (!statusChart && document.getElementById('statusChart')) {
-        statusChart = new Chart(document.getElementById('statusChart'), {
+    if (!statusChart) {
+        statusChart = new Chart(ctx, {
             type: 'doughnut',
-            data: { labels: ['Pass', 'Fail', 'Brak'], datasets: [{ data: [pass, fail, unknown], backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'] }] }
+            data: {
+                labels: ['Pass', 'Fail', 'Brak'],
+                datasets: [{
+                    data: [pass, fail, unknown],
+                    backgroundColor: ['#4caf50', '#f44336', '#9e9e9e']
+                }]
+            }
         });
-    } else if (statusChart) {
+    } else {
         statusChart.data.datasets[0].data = [pass, fail, unknown];
         statusChart.update();
     }
@@ -250,17 +247,10 @@ function exportToPDF() {
     doc.save('testcases.pdf');
 }
 
-// ------------------- Init -------------------
+// ------------------- Inicjalizacja -------------------
 document.addEventListener('DOMContentLoaded', () => {
-    if (testForm) {
-        testForm.addEventListener('submit', e => {
-            e.preventDefault();
-            saveTestCase();
-        });
-    }
-    if (statusFilter && priorityFilter && searchQuery) {
-        statusFilter.addEventListener('change', renderTable);
-        priorityFilter.addEventListener('change', renderTable);
-        searchQuery.addEventListener('input', renderTable);
-    }
+    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
+    if (statusFilter) statusFilter.addEventListener('change', renderTable);
+    if (priorityFilter) priorityFilter.addEventListener('change', renderTable);
+    if (searchQuery) searchQuery.addEventListener('input', renderTable);
 });
