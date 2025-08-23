@@ -9,9 +9,38 @@ let trendData = [];
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const userPanel = document.getElementById("userPanel");
+const logoutBtn = document.getElementById("logoutBtn");
+const statusFilter = document.getElementById("statusFilter");
+const priorityFilter = document.getElementById("priorityFilter");
+const searchQuery = document.getElementById("searchQuery");
 
-// ------------------- Ochrona strony i pobieranie danych -------------------
+// ------------------- Funkcje użytkownika -------------------
+function renderUserPanel() {
+    const userPanel = document.createElement('div');
+    userPanel.id = 'userPanel';
+    userPanel.className = 'd-flex gap-2 align-items-center';
+    userPanel.innerHTML = `
+        <span class="fw-bold">${currentUser.email}</span>
+        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
+        <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
+    `;
+    document.querySelector('.header-container').appendChild(userPanel);
+
+    document.getElementById('editProfileBtn').addEventListener('click', () => {
+        const newPassword = prompt('Podaj nowe hasło:');
+        if (newPassword) {
+            currentUser.updatePassword(newPassword)
+                .then(() => alert('Hasło zmienione!'))
+                .catch(err => alert('Błąd: ' + err.message));
+        }
+    });
+
+    document.getElementById('logoutBtnPanel').addEventListener('click', () => {
+        auth.signOut().then(() => window.location.href = 'index.html');
+    });
+}
+
+// ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
@@ -22,87 +51,47 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ------------------- Funkcja wczytująca testy -------------------
 function loadTestCases() {
-    if (!currentUser) return;
-
     db.collection('testCases')
-      .where('owner', '==', currentUser.uid) // tylko własne testy
-      //.orderBy('createdAt', 'desc') // odblokuj po utworzeniu indeksu w Firestore
+      .where('owner', '==', currentUser.uid)
       .onSnapshot(snapshot => {
           testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderTable();
-      }, err => {
-          console.error("Błąd Firestore:", err);
-          alert("Nie udało się pobrać testów: " + err.message);
-      });
+      }, err => console.error(err));
 }
 
-
-// ------------------- Render panelu użytkownika -------------------
-function renderUserPanel() {
-    if (!userPanel) return;
-    userPanel.innerHTML = `
-        <span class="me-2">${currentUser.email}</span>
-        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
-    });
-
-    document.getElementById("editProfileBtn").addEventListener("click", () => {
-        const newPass = prompt("Podaj nowe hasło:");
-        if (newPass) {
-            currentUser.updatePassword(newPass)
-                .then(() => alert("Hasło zmienione"))
-                .catch(err => alert("Błąd: " + err.message));
-        }
-    });
-}
-
-// ------------------- Funkcje CRUD -------------------
-function loadTestCases() {
-    db.collection("testCases")
-      .where("owner", "==", currentUser.uid)
-      .onSnapshot(snapshot => {
-        testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderTable();
-        snapshotTrend();
-      }, err => console.error("Firestore error:", err));
-}
-
+// ------------------- CRUD -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
     const data = {
-        title: document.getElementById('testName').value,
-        description: document.getElementById('testDesc').value,
+        name: document.getElementById('testName').value,
+        desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
         owner: currentUser.uid,
-        history: firebase.firestore.FieldValue.arrayUnion(`Edytowano: ${new Date().toLocaleString()}`)
+        history: [`${index === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
     if (index === '') {
-        data.history = [`Utworzono: ${new Date().toLocaleString()}`];
-        db.collection("testCases").add(data);
+        db.collection('testCases').add(data)
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
     } else {
-        const docId = testCases[index].id;
-        db.collection("testCases").doc(docId).update(data);
+        db.collection('testCases').doc(index).set(data)
+            .then(() => resetForm())
+            .catch(err => alert('Błąd zapisu: ' + err.message));
     }
-    testForm.reset();
 }
 
-// ------------------- Edycja, usuwanie, historia, priorytet -------------------
-function editTestCase(idx) {
-    const tc = testCases[idx];
-    document.getElementById('editIndex').value = idx;
-    document.getElementById('testName').value = tc.title;
-    document.getElementById('testDesc').value = tc.description;
+function editTestCase(id) {
+    const tc = testCases.find(tc => tc.id === id);
+    if (!tc) return;
+    document.getElementById('editIndex').value = tc.id;
+    document.getElementById('testName').value = tc.name;
+    document.getElementById('testDesc').value = tc.desc;
     document.getElementById('testSteps').value = tc.steps;
     document.getElementById('expectedResult').value = tc.expected;
     document.getElementById('testStatus').value = tc.status;
@@ -110,74 +99,81 @@ function editTestCase(idx) {
     document.getElementById('testPriority').value = tc.priority;
 }
 
-function deleteTestCase(idx) {
+function deleteTestCase(id) {
     if (!confirm('Na pewno usunąć ten test?')) return;
-    const docId = testCases[idx].id;
-    db.collection("testCases").doc(docId).delete();
+    db.collection('testCases').doc(id).delete();
 }
 
-function setCritical(idx) {
-    const docId = testCases[idx].id;
-    db.collection("testCases").doc(docId).update({
-        priority: 'Krytyczny',
-        history: firebase.firestore.FieldValue.arrayUnion(`Ustawiono priorytet Krytyczny: ${new Date().toLocaleString()}`)
-    });
+function deleteAllTestCases() {
+    if (!confirm('Na pewno usunąć wszystkie testy?')) return;
+    testCases.forEach(tc => db.collection('testCases').doc(tc.id).delete());
 }
 
-function showHistory(idx) {
-    const tc = testCases[idx];
-    alert(tc.history.join('\n'));
+function resetForm() {
+    if (!testForm) return;
+    testForm.reset();
+    document.getElementById('editIndex').value = '';
 }
 
-// ------------------- Filtry, sortowanie, statystyki -------------------
-function sortBy(key) {
-    if (sortKey === key) sortAsc = !sortAsc;
-    else { sortKey = key; sortAsc = true; sortKey = key; }
+// ------------------- Filtry i sortowanie -------------------
+function clearFilters() {
+    statusFilter.value = 'all';
+    priorityFilter.value = 'all';
+    searchQuery.value = '';
     renderTable();
 }
 
 function applyFilters(data) {
-    const status = document.getElementById('statusFilter').value;
-    const priority = document.getElementById('priorityFilter').value;
-    const query = document.getElementById('searchQuery').value.toLowerCase();
+    const status = statusFilter.value;
+    const priority = priorityFilter.value;
+    const query = searchQuery.value.toLowerCase();
     return data.filter(tc => {
         if (status !== 'all' && tc.status !== status) return false;
         if (priority !== 'all' && tc.priority !== priority) return false;
-        if (query && ![tc.title, tc.description].some(f => f.toLowerCase().includes(query))) return false;
+        if (query && ![tc.name, tc.desc, tc.steps, tc.expected].some(f => f.toLowerCase().includes(query))) return false;
         return true;
     });
 }
 
+function sortBy(key) {
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    renderTable();
+}
+
+// ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
+let statusChart, trendChart;
+
 function renderTable() {
-    let data = applyFilters(testCases);
+    let data = applyFilters([...testCases]);
 
     if (sortKey) {
         data.sort((a, b) => {
             const va = a[sortKey] || '', vb = b[sortKey] || '';
-            return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
         });
     }
 
     const tbody = document.querySelector('#testTable tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    data.forEach((tc, idx) => {
+
+    data.forEach(tc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${tc.title}</td>
-            <td>${tc.description}</td>
-            <td>${tc.steps}</td>
-            <td>${tc.expected}</td>
-            <td>${tc.status || ''}</td>
-            <td>${tc.notes}</td>
-            <td>${tc.priority || ''}</td>
-            <td>
-              <button class="btn btn-sm btn-primary" onclick="editTestCase(${idx})">Edytuj</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${idx})">Usuń</button>
-              <button class="btn btn-sm btn-warning" onclick="setCritical(${idx})">Krytyczny</button>
-              <button class="btn btn-sm btn-info" onclick="showHistory(${idx})">Historia</button>
-            </td>
-        `;
+        <td>${tc.name}</td>
+        <td>${tc.desc}</td>
+        <td>${tc.steps}</td>
+        <td>${tc.expected}</td>
+        <td>${tc.status}</td>
+        <td>${tc.notes}</td>
+        <td>${tc.priority}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
+        </td>`;
         tbody.appendChild(tr);
     });
 
@@ -202,20 +198,11 @@ function updateStats() {
     document.getElementById('barPass').style.width = (pass / total * 100) + '%';
     document.getElementById('barFail').style.width = (fail / total * 100) + '%';
     document.getElementById('barUnknown').style.width = (unknown / total * 100) + '%';
-
-    document.getElementById('statsSummary').textContent = `Pass: ${pass}, Fail: ${fail}, Brak: ${unknown}`;
-}
-
-// ------------------- Wykresy -------------------
-let statusChart, trendChart;
-function snapshotTrend() {
-    trendData.push({ time: new Date().toLocaleTimeString(), total: testCases.length });
-    if (trendData.length > 20) trendData.shift();
-    updateCharts();
 }
 
 function updateCharts() {
     const { pass, fail, unknown } = countStats();
+
     if (!statusChart && document.getElementById('statusChart')) {
         statusChart = new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
@@ -225,60 +212,48 @@ function updateCharts() {
         statusChart.data.datasets[0].data = [pass, fail, unknown];
         statusChart.update();
     }
-
-    if (!trendChart && document.getElementById('trendChart')) {
-        trendChart = new Chart(document.getElementById('trendChart'), {
-            type: 'line',
-            data: { labels: trendData.map(d => d.time), datasets: [{ label: 'Łączna liczba testów', data: trendData.map(d => d.total), borderColor: '#007bff', fill: false }] }
-        });
-    } else if (trendChart) {
-        trendChart.data.labels = trendData.map(d => d.time);
-        trendChart.data.datasets[0].data = trendData.map(d => d.total);
-        trendChart.update();
-    }
 }
 
 // ------------------- Import / Export -------------------
-function importFromCSV() {
-    const file = document.getElementById('csvFile')?.files[0];
-    if (!file) return alert('Wybierz plik CSV');
-    const reader = new FileReader();
-    reader.onload = e => {
-        const lines = e.target.result.split('\n').filter(l => l.trim());
-        lines.slice(1).forEach(line => {
-            const [title, description] = line.split(',');
-            db.collection("testCases").add({ title, description, owner: currentUser.uid, history: [`Zaimportowano: ${new Date().toLocaleString()}`] });
-        });
-    };
-    reader.readAsText(file);
-}
-
 function exportToCSV() {
-    let csv = "Tytuł,Opis\n";
+    let csv = "Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
     testCases.forEach(tc => {
-        csv += `"${tc.title.replace(/"/g,'""')}","${tc.description.replace(/"/g,'""')}"\n`;
+        csv += `"${tc.name.replace(/"/g,'""')}","${tc.desc.replace(/"/g,'""')}","${tc.steps.replace(/"/g,'""')}","${tc.expected.replace(/"/g,'""')}","${tc.status}","${tc.notes}","${tc.priority}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'testcases.csv';
     a.click();
 }
 
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const doc = new jsPDF();
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.autoTable({
-        head: [['Tytuł', 'Opis', 'Status', 'Priorytet']],
-        body: testCases.map(tc => [tc.title, tc.description, tc.status || '', tc.priority || '']),
-        styles: { cellPadding: 3, font: "helvetica" }
+        head: [['Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
+        body: testCases.map(tc => [
+            tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority
+        ]),
+        styles: { cellPadding: 2, fontSize: 10 }
     });
     doc.save('testcases.pdf');
 }
 
 // ------------------- Init -------------------
-if (testForm) {
-    testForm.addEventListener("submit", e => { e.preventDefault(); saveTestCase(); });
-}
+document.addEventListener('DOMContentLoaded', () => {
+    if (testForm) {
+        testForm.addEventListener('submit', e => {
+            e.preventDefault();
+            saveTestCase();
+        });
+    }
+    if (statusFilter && priorityFilter && searchQuery) {
+        statusFilter.addEventListener('change', renderTable);
+        priorityFilter.addEventListener('change', renderTable);
+        searchQuery.addEventListener('input', renderTable);
+    }
+});
