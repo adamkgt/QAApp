@@ -9,86 +9,66 @@ let trendData = [];
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
-const userPanel = document.getElementById("userPanel");
+const logoutBtn = document.getElementById("logoutBtn");
 
-// ------------------- Panel użytkownika -------------------
-function renderUserPanel() {
-    if (!currentUser) return;
-    userPanel.innerHTML = `
-        <span class="me-2">${currentUser.email}</span>
-        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
-        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
-    });
-
-    document.getElementById("editProfileBtn").addEventListener("click", () => {
-        const newPassword = prompt("Wprowadź nowe hasło:");
-        if (newPassword) {
-            currentUser.updatePassword(newPassword)
-                .then(() => alert("Hasło zmienione pomyślnie"))
-                .catch(err => alert("Błąd: " + err.message));
-        }
-    });
-}
-
-// ------------------- Autoryzacja i ładowanie danych -------------------
+// ------------------- Ochrona strony i logowanie -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
     } else {
         currentUser = user;
-        renderUserPanel();
-        loadTestCases();
+        loadUserTestCases();  // <- tylko przypadki aktualnego użytkownika
+        renderUserPanel();    // Panel użytkownika
     }
 });
 
-// ------------------- CRUD w Firestore -------------------
-function loadTestCases() {
-    db.collection("testCases").orderBy("createdAt", "asc").onSnapshot(snapshot => {
-        testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        snapshotTrend();
-        renderTable();
-    });
+// ------------------- Wylogowanie -------------------
+function setupLogout() {
+    const btn = document.getElementById("logoutBtn");
+    if (btn) {
+        btn.addEventListener("click", () => {
+            auth.signOut().then(() => window.location.href = "index.html");
+        });
+    }
+}
+setupLogout();
+
+// ------------------- CRUD Firebase dla użytkownika -------------------
+function loadUserTestCases() {
+    db.collection("testCases")
+      .where("owner", "==", currentUser.uid)
+      .orderBy("createdAt", "asc")
+      .onSnapshot(snapshot => {
+          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderTable();
+          snapshotTrend();
+          updateStats();
+          updateCharts();
+      });
 }
 
 function saveTestCase() {
-    if (!testForm) return;
-
-    const index = document.getElementById('editIndex').value;
+    const idField = document.getElementById('editIndex').value;
     const data = {
-        id: document.getElementById('testId').value,
-        name: document.getElementById('testName').value,
+        title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        owner: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        history: []
     };
 
-    if (index === '') {
+    if (!idField) {
         db.collection("testCases").add(data);
     } else {
-        const docId = testCases[index].id;
-        db.collection("testCases").doc(docId).update(data);
+        db.collection("testCases").doc(idField).update(data);
     }
 
     resetForm();
-}
-
-function deleteTestCase(idx) {
-    if (!confirm("Na pewno chcesz usunąć ten test?")) return;
-    const docId = testCases[idx].id;
-    db.collection("testCases").doc(docId).delete();
-}
-
-function deleteAllTestCases() {
-    if (!confirm("Na pewno chcesz usunąć wszystkie testy?")) return;
-    testCases.forEach(tc => db.collection("testCases").doc(tc.id).delete());
 }
 
 function editTestCase(idx) {
