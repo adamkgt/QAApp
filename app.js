@@ -5,6 +5,7 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
+let statusChart;
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
@@ -14,14 +15,18 @@ const searchQuery = document.getElementById("searchQuery");
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
-    const userPanelContainer = document.getElementById('userPanel');
-    if (!userPanelContainer) return;
+    const header = document.querySelector('.d-flex.align-items-center.justify-content-between');
+    if (!header) return;
 
-    userPanelContainer.innerHTML = `
+    const userPanel = document.createElement('div');
+    userPanel.id = 'userPanel';
+    userPanel.className = 'd-flex gap-2 align-items-center';
+    userPanel.innerHTML = `
         <span class="fw-bold">${currentUser.email}</span>
         <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
         <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
     `;
+    header.appendChild(userPanel);
 
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
@@ -44,35 +49,22 @@ auth.onAuthStateChanged(user => {
     } else {
         currentUser = user;
         renderUserPanel();
-        loadTestCases(); // tutaj wczytujemy dane
+        loadTestCases();
     }
 });
 
-// ------------------- Ładowanie przypadków testowych -------------------
 function loadTestCases() {
     db.collection('testCases')
       .where('owner', '==', currentUser.uid)
       .onSnapshot(snapshot => {
-          // Nadpisanie tablicy, aby uniknąć dublowania
           testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderTable();
       }, err => console.error(err));
 }
 
 // ------------------- CRUD -------------------
-function loadTestCases() {
-    db.collection('testCases')
-      .where('owner', '==', currentUser.uid)
-      .onSnapshot(snapshot => {
-          // Nadpisanie całej tablicy testCases
-          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          renderTable();
-      }, err => console.error(err));
-}
-
-
 function saveTestCase() {
-    const index = document.getElementById('editIndex').value;
+    const docId = document.getElementById('editIndex').value;
     const data = {
         name: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
@@ -82,17 +74,17 @@ function saveTestCase() {
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
         owner: currentUser.uid,
-        history: [`${index === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
+        history: [`${docId === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
-    if (index === '') {
+    if (docId === '') {
         db.collection('testCases').add(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
+          .then(() => resetForm())
+          .catch(err => alert('Błąd zapisu: ' + err.message));
     } else {
-        db.collection('testCases').doc(index).update(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
+        db.collection('testCases').doc(docId).update(data)
+          .then(() => resetForm())
+          .catch(err => alert('Błąd zapisu: ' + err.message));
     }
 }
 
@@ -127,16 +119,16 @@ function resetForm() {
 
 // ------------------- Filtry i sortowanie -------------------
 function clearFilters() {
-    if (statusFilter) statusFilter.value = 'all';
-    if (priorityFilter) priorityFilter.value = 'all';
-    if (searchQuery) searchQuery.value = '';
+    statusFilter.value = 'all';
+    priorityFilter.value = 'all';
+    searchQuery.value = '';
     renderTable();
 }
 
 function applyFilters(data) {
-    const status = statusFilter ? statusFilter.value : 'all';
-    const priority = priorityFilter ? priorityFilter.value : 'all';
-    const query = searchQuery ? searchQuery.value.toLowerCase() : '';
+    const status = statusFilter.value;
+    const priority = priorityFilter.value;
+    const query = searchQuery.value.toLowerCase();
     return data.filter(tc => {
         if (status !== 'all' && tc.status !== status) return false;
         if (priority !== 'all' && tc.priority !== priority) return false;
@@ -151,16 +143,14 @@ function sortBy(key) {
     renderTable();
 }
 
-// ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
+// ------------------- Renderowanie tabeli, statystyki, wykres -------------------
 function renderTable() {
     let data = applyFilters([...testCases]);
 
     if (sortKey) {
         data.sort((a, b) => {
             const va = a[sortKey] || '', vb = b[sortKey] || '';
-            if (va < vb) return sortAsc ? -1 : 1;
-            if (va > vb) return sortAsc ? 1 : -1;
-            return 0;
+            return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
         });
     }
 
@@ -185,13 +175,13 @@ function renderTable() {
         tbody.appendChild(tr);
     });
 
-    updateStats(data);
-    updateCharts(data);
+    updateStats();
+    updateCharts();
 }
 
-function countStats(data) {
+function countStats() {
     let pass = 0, fail = 0, unknown = 0;
-    data.forEach(tc => {
+    testCases.forEach(tc => {
         if (tc.status === 'Pass') pass++;
         else if (tc.status === 'Fail') fail++;
         else unknown++;
@@ -199,17 +189,16 @@ function countStats(data) {
     return { pass, fail, unknown };
 }
 
-function updateStats(filteredData) {
-    const { pass, fail, unknown } = countStats(filteredData);
-    const total = filteredData.length || 1;
-
+function updateStats() {
+    const { pass, fail, unknown } = countStats();
+    const total = testCases.length || 1;
     document.getElementById('barPass').style.width = (pass / total * 100) + '%';
     document.getElementById('barFail').style.width = (fail / total * 100) + '%';
     document.getElementById('barUnknown').style.width = (unknown / total * 100) + '%';
 }
 
-function updateCharts(filteredData) {
-    const { pass, fail, unknown } = countStats(filteredData);
+function updateCharts() {
+    const { pass, fail, unknown } = countStats();
 
     if (!statusChart && document.getElementById('statusChart')) {
         statusChart = new Chart(document.getElementById('statusChart'), {
@@ -251,8 +240,15 @@ function exportToPDF() {
 
 // ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', () => {
-    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
-    if (statusFilter) statusFilter.addEventListener('change', renderTable);
-    if (priorityFilter) priorityFilter.addEventListener('change', renderTable);
-    if (searchQuery) searchQuery.addEventListener('input', renderTable);
+    if (testForm) {
+        testForm.addEventListener('submit', e => {
+            e.preventDefault();
+            saveTestCase();
+        });
+    }
+    if (statusFilter && priorityFilter && searchQuery) {
+        statusFilter.addEventListener('change', renderTable);
+        priorityFilter.addEventListener('change', renderTable);
+        searchQuery.addEventListener('input', renderTable);
+    }
 });
