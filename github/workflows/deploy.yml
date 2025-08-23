@@ -1,19 +1,20 @@
-name: Deploy to GitHub Pages
+name: Deploy QAApp to GitHub Pages
 
 on:
   push:
     branches:
-      - main  # lub master
+      - main  # lub master, zależnie od Twojej gałęzi
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Pobranie repo
       - uses: actions/checkout@v3
 
-      # Tworzenie config.js z sekretów
-      - name: Create config.js from GitHub Secrets
+      # 2️⃣ Utworzenie config.js z sekretów
+      - name: Generate config.js from secrets
         run: |
           echo "const firebaseConfig = {
             apiKey: '${{ secrets.FIREBASE_API_KEY }}',
@@ -25,9 +26,13 @@ jobs:
             measurementId: '${{ secrets.FIREBASE_MEASUREMENT_ID }}'
           };" > config.js
 
-      # Deploy na GitHub Pages
+      # 3️⃣ Wylistowanie wszystkich plików (debug)
+      - name: List files
+        run: ls -R
+
+      # 4️⃣ Wypchnięcie na GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./  # katalog z index.html, app.html, style.css, script.js, config.js
+          publish_dir: ./  # katalog root repo z index.html, app.html, script.js, style.css, config.js
