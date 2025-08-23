@@ -26,22 +26,14 @@
 <body class="bg-light">
   <div class="container py-4">
 
-<!-- 🔹 Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="#">QA Test Manager</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
-      <ul class="navbar-nav">
-        <!-- Panel użytkownika generowany przez JS -->
-        <li class="nav-item dropdown" id="userPanel"></li>
-      </ul>
-    </div>
+<header class="d-flex justify-content-between align-items-center p-3 mb-4 bg-dark text-white">
+  <h2 class="m-0">QA Test Manager</h2>
+  
+  <div class="dropdown" id="userPanel">
+    <!-- JS wstawi tutaj e-mail i dropdown -->
   </div>
-</nav>
+</header>
+
 
 
     <!-- 🔹 Form -->
@@ -182,6 +174,7 @@
   </div>
 </body>
 </html>
+
 
 
 
