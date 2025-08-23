@@ -22,11 +22,36 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-        auth.signOut().then(() => window.location.href = "index.html");
+function renderUserPanel() {
+    if (!currentUser) return;
+
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        const name = doc.exists && doc.data().name ? doc.data().name : currentUser.email;
+        const userPanel = document.getElementById('userPanel');
+        if (!userPanel) return;
+
+        db.collection('users').doc(currentUser.uid).collection('testCases').get().then(snapshot => {
+            const testCount = snapshot.size;
+            userPanel.innerHTML = `
+                <div class="text-end">
+                    <strong>${name}</strong><br>
+                    Testów: ${testCount}
+                </div>
+                <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Edytuj profil</button>
+                <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Wyloguj</button>
+            `;
+
+            document.getElementById('editProfileBtn').addEventListener('click', () => {
+                showEditProfileModal();
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                auth.signOut().then(() => window.location.href = 'index.html');
+            });
+        });
     });
 }
+
 
 // ------------------- CRUD: wczytywanie -------------------
 function loadTestCases() {
