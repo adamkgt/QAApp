@@ -1,32 +1,31 @@
-
 // Inicjalizacja Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 // Logowanie
 if (document.getElementById("loginForm")) {
-    document.getElementById("loginForm").addEventListener("submit", e => {
-        e.preventDefault();
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
+  document.getElementById("loginForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => window.location.href = "app.html")
-            .catch(err => {
-                document.getElementById("errorMsg").textContent = "Błąd: " + err.message;
-            });
-    });
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => window.location.href = "app.html")
+      .catch(err => {
+        document.getElementById("errorMsg").textContent = "Błąd: " + err.message;
+      });
+  });
 }
 
 // Ochrona app.html
-if (document.getElementById("testForm")) {
-    auth.onAuthStateChanged(user => {
-        if (!user) window.location.href = 'index.html';
-    });
+if (document.getElementById("testForm") || document.querySelector(".header-container")) {
+  auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = 'index.html';
+  });
 
-    window.logout = () => {
-        auth.signOut().then(() => window.location.href = 'index.html');
-    };
+  window.logout = () => {
+    auth.signOut().then(() => window.location.href = 'index.html');
+  };
 }
 
 
@@ -320,6 +319,7 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
         renderTable();
     });
 }
+
 
 
 
