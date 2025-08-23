@@ -63,9 +63,9 @@ function renderUserPanel() {
     if (!userPanel || !currentUser) return;
 
     userPanel.innerHTML = `
-      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+      <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
         ${currentUser.email}
-      </button>
+      </a>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
         <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
@@ -85,10 +85,6 @@ function renderUserPanel() {
         auth.signOut().then(() => window.location.href = 'index.html');
     });
 }
-
-
-
-
 
 
 
