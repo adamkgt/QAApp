@@ -1,9 +1,4 @@
-// Inicjalizacja Firebase
-firebase.initializeApp(firebaseConfig);
 
-// TYLKO RAZ deklarujemy auth i db
-const auth = firebase.auth();
-const db = firebase.firestore();
 let currentUser = null;
 
 // ------------------- Elementy DOM -------------------
@@ -331,4 +326,5 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable();
     }
 });
+
 
