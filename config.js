@@ -12,7 +12,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 // 🔹 Ustawienia globalne
-const auth = firebase.auth();
 const db = firebase.firestore();
 
 // 🔹 Eksport do innych plików (żeby script.js miał dostęp)
