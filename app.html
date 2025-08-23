@@ -22,17 +22,27 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-</head>
-<body class="bg-light">
-  <div class="container py-4">
 
-<header class="d-flex justify-content-between align-items-center p-3 mb-4 bg-dark text-white">
-  <h2 class="m-0">QA Test Manager</h2>
-  
-  <div class="dropdown" id="userPanel">
-    <!-- JS wstawi tutaj e-mail i dropdown -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <!-- Logo / Tytuł po lewej -->
+    <a class="navbar-brand fw-bold" href="#">QA Test Manager</a>
+
+    <!-- Hamburger menu na małych ekranach -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUserPanel">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Panel użytkownika po prawej -->
+    <div class="collapse navbar-collapse justify-content-end" id="navbarUserPanel">
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown" id="userPanel">
+          <!-- JS wstawi dropdown z e-mailem i przyciskami -->
+        </li>
+      </ul>
+    </div>
   </div>
-</header>
+</nav>
 
 
 
@@ -174,6 +184,7 @@
   </div>
 </body>
 </html>
+
 
 
 
