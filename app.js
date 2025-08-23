@@ -63,7 +63,7 @@ function renderUserPanel() {
 
     userPanel.innerHTML = `
       <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-        <img id="userAvatar" src="https://via.placeholder.com/32" class="rounded-circle me-2" alt="Avatar" />
+        <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" alt="Avatar" />
         ${currentUser.email}
       </a>
       <ul class="dropdown-menu dropdown-menu-end">
