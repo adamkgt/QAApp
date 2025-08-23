@@ -216,7 +216,10 @@ function updateCharts() {
 // ------------------- Import / Export -------------------
 function importFromCSV() {
     const fileInput = document.getElementById('csvFile');
-    if (!fileInput || !fileInput.files.length) return alert('Wybierz plik CSV');
+    if (!fileInput || !fileInput.files.length) {
+        alert('Nie wybrano pliku CSV!');
+        return;
+    }
 
     const file = fileInput.files[0];
     const reader = new FileReader();
@@ -225,6 +228,8 @@ function importFromCSV() {
         const text = e.target.result;
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const headers = lines[0].split(',').map(h => h.trim());
+
+        const userCollection = db.collection('Users').doc(currentUser.uid).collection('testCases');
 
         for (let i = 1; i < lines.length; i++) {
             const row = lines[i].split(',').map(cell => cell.trim());
@@ -237,23 +242,26 @@ function importFromCSV() {
             data.history = [`Utworzono: ${new Date().toLocaleString()}`];
 
             try {
-                // Tworzymy dokument w Users/{uid}/testCases
-                await db.collection('Users')
-                        .doc(currentUser.uid)
-                        .collection('testCases')
-                        .doc(data.name) // używamy nazwy testu jako ID dokumentu
-                        .set(data);
+                const docRef = userCollection.doc(data.name);
+                const docSnap = await docRef.get();
+                if (!docSnap.exists) {
+                    // Tworzymy nowy dokument tylko jeśli nie istnieje
+                    await docRef.set(data);
+                } else {
+                    console.log(`Test "${data.name}" już istnieje. Pomijam import.`);
+                }
             } catch (err) {
                 console.error('Błąd importu:', err);
             }
         }
 
         alert('Import zakończony!');
-        loadTestCases(); // odświeżenie tabeli po imporcie
+        loadTestCases();
     };
 
     reader.readAsText(file);
 }
+
 
 
 function exportToCSV() {
