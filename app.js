@@ -303,9 +303,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Import CSV
-    const csvInput = document.getElementById('csvFile');
-    if (csvInput) {
-        csvInput.addEventListener('change', importFromCSV);
+  const csvFileInput = document.getElementById('csvFile');
+    const importBtn = document.getElementById('importCSVBtn');
+
+    if (importBtn && csvFileInput) {
+        importBtn.addEventListener('click', () => {
+            // Sprawdzenie, czy plik został wybrany
+            if (!csvFileInput.files.length) {
+                alert('Wybierz plik CSV!');
+                return;
+            }
+
+            importFromCSV();
+        });
     }
 });
 
