@@ -76,6 +76,43 @@ function saveTestCase() {
         .catch(err => console.error("Błąd przy zapisie:", err));
 }
 
+function renderTable() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    db.collection("testCases")
+      .where("uid", "==", user.uid)
+      .orderBy("timestamp", "desc")
+      .get()
+      .then(snapshot => {
+          const tbody = document.querySelector("#testTable tbody");
+          tbody.innerHTML = "";
+          snapshot.forEach(doc => {
+              const data = doc.data();
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                  <td>${data.testId}</td>
+                  <td>${data.name}</td>
+                  <td>${data.description}</td>
+                  <td>${data.steps}</td>
+                  <td>${data.expectedResult}</td>
+                  <td>${data.status || ""}</td>
+                  <td>${data.notes || ""}</td>
+                  <td>${data.priority || ""}</td>
+                  <td>
+                      <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${doc.id}')">Usuń</button>
+                  </td>
+              `;
+              tbody.appendChild(tr);
+          });
+      });
+}
+
+function deleteTestCase(docId) {
+    db.collection("testCases").doc(docId).delete()
+      .then(() => renderTable())
+      .catch(err => console.error("Błąd przy usuwaniu:", err));
+}
 
 
   
@@ -352,6 +389,7 @@ function saveTestCase() {
         renderTable();
     });
 }
+
 
 
 
