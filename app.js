@@ -56,22 +56,41 @@ function loadTestCases() {
       }, err => console.error(err));
 }
 
-// ------------------- Panel Usera -------------------
-
+// ------------------- Panel użytkownika z awatarem -------------------
 function renderUserPanel() {
     const userPanel = document.getElementById('userPanel');
     if (!userPanel || !currentUser) return;
 
     userPanel.innerHTML = `
-      <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+      <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
+        <img id="userAvatar" src="https://via.placeholder.com/32" class="rounded-circle me-2" alt="Avatar" />
         ${currentUser.email}
       </a>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+        <li>
+          <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
+          <div id="avatarPreviewContainer" class="p-2 d-none">
+            <p class="mb-1 small">Podgląd nowego awatara:</p>
+            <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
+            <div class="mt-2 d-flex gap-2">
+              <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
+              <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
+            </div>
+          </div>
+        </li>
         <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
       </ul>
     `;
 
+    // Pobranie awatara z Firestore jeśli istnieje
+    firebase.firestore().collection('Users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists && doc.data().avatar) {
+            document.getElementById('userAvatar').src = doc.data().avatar;
+        }
+    });
+
+    // Zmiana hasła
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
         if (newPassword) {
@@ -81,10 +100,99 @@ function renderUserPanel() {
         }
     });
 
+    // Wylogowanie
     document.getElementById('logoutBtnPanel').addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = 'index.html');
     });
+
+    // Podgląd i zmiana awatara
+    const changeBtn = document.getElementById('changeAvatarBtn');
+    const previewContainer = document.getElementById('avatarPreviewContainer');
+    const previewImg = document.getElementById('avatarPreview');
+
+    let selectedFile = null;
+
+    changeBtn.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.click();
+
+        input.onchange = () => {
+            selectedFile = input.files[0];
+            if (!selectedFile) return;
+
+            // Wyświetlenie podglądu
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewContainer.classList.remove('d-none');
+            };
+            reader.readAsDataURL(selectedFile);
+        };
+    });
+
+    // Funkcja przycinania i skalowania do 64x64
+    function resizeImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const size = Math.min(img.width, img.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(
+                    img,
+                    (img.width - size) / 2,
+                    (img.height - size) / 2,
+                    size,
+                    size,
+                    0,
+                    0,
+                    64,
+                    64
+                );
+                canvas.toBlob(callback, 'image/jpeg', 0.9);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Zapis awatara
+    document.getElementById('saveAvatarBtn').addEventListener('click', async () => {
+        if (!selectedFile) return;
+        try {
+            resizeImage(selectedFile, async (blob) => {
+                const storageRef = firebase.storage().ref();
+                const avatarRef = storageRef.child(`avatars/${currentUser.uid}.jpg`);
+                await avatarRef.put(blob);
+                const avatarURL = await avatarRef.getDownloadURL();
+
+                await firebase.firestore().collection('Users').doc(currentUser.uid).update({
+                    avatar: avatarURL
+                });
+
+                document.getElementById('userAvatar').src = avatarURL;
+                previewContainer.classList.add('d-none');
+                alert('Awatar został zmieniony!');
+            });
+        } catch (err) {
+            console.error(err);
+            alert('Błąd przy zmianie awatara: ' + err.message);
+        }
+    });
+
+    // Anulowanie podglądu
+    document.getElementById('cancelAvatarBtn').addEventListener('click', () => {
+        previewContainer.classList.add('d-none');
+        previewImg.src = '';
+        selectedFile = null;
+    });
 }
+
 
 
 
