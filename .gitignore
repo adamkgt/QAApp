@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignoruj lokalny config z sekretami
+config.js
+
+# Systemowe śmieci
+node_modules/
+.DS_Store
