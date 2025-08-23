@@ -214,53 +214,31 @@ function updateCharts() {
 }
 
 // ------------------- Import / Export -------------------
-function importFromCSV() {
-    const fileInput = document.getElementById('csvFile');
-    if (!fileInput || !fileInput.files.length) {
-        alert('Nie wybrano pliku CSV!');
-        return;
+document.addEventListener('DOMContentLoaded', () => {
+    if (testForm) {
+        testForm.addEventListener('submit', e => {
+            e.preventDefault();
+            saveTestCase();
+        });
+    }
+    if (statusFilter && priorityFilter && searchQuery) {
+        statusFilter.addEventListener('change', renderTable);
+        priorityFilter.addEventListener('change', renderTable);
+        searchQuery.addEventListener('input', renderTable);
     }
 
-    const file = fileInput.files[0];
-    const reader = new FileReader();
-
-    reader.onload = async (e) => {
-        const text = e.target.result;
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        const headers = lines[0].split(',').map(h => h.trim());
-
-        const userCollection = db.collection('Users').doc(currentUser.uid).collection('testCases');
-
-        for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].split(',').map(cell => cell.trim());
-            const data = {};
-            headers.forEach((h, idx) => {
-                data[h.toLowerCase()] = row[idx] || '';
-            });
-
-            data.owner = currentUser.uid;
-            data.history = [`Utworzono: ${new Date().toLocaleString()}`];
-
-            try {
-                const docRef = userCollection.doc(data.name);
-                const docSnap = await docRef.get();
-                if (!docSnap.exists) {
-                    // Tworzymy nowy dokument tylko jeśli nie istnieje
-                    await docRef.set(data);
-                } else {
-                    console.log(`Test "${data.name}" już istnieje. Pomijam import.`);
-                }
-            } catch (err) {
-                console.error('Błąd importu:', err);
+    const csvFileInput = document.getElementById('csvFile');
+    const importBtn = document.querySelector('button[onclick="importFromCSV()"]');
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            if (!csvFileInput || !csvFileInput.files.length) {
+                alert('Nie wybrano pliku CSV!');
+                return;
             }
-        }
-
-        alert('Import zakończony!');
-        loadTestCases();
-    };
-
-    reader.readAsText(file);
-}
+            importFromCSV();
+        });
+    }
+});
 
 
 
