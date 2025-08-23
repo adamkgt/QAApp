@@ -50,14 +50,32 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 
 const db = firebase.firestore();
 
-// dodanie dokumentu automatycznie tworzy kolekcję, jeśli nie istnieje
-db.collection("testCases").add({
-    uid: auth.currentUser.uid,
-    testId: "TC-001",
-    name: "Logowanie",
-    description: "Test logowania",
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-});
+function saveTestCase() {
+    const user = auth.currentUser;
+    if (!user) return alert("Użytkownik nie jest zalogowany!");
+
+    const testCase = {
+        uid: user.uid,
+        testId: document.getElementById("testId").value,
+        name: document.getElementById("testName").value,
+        description: document.getElementById("testDesc").value,
+        steps: document.getElementById("testSteps").value,
+        expectedResult: document.getElementById("expectedResult").value,
+        status: document.getElementById("testStatus").value,
+        notes: document.getElementById("testNotes").value,
+        priority: document.getElementById("testPriority").value,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    db.collection("testCases").add(testCase)
+        .then(() => {
+            alert("Przypadek testowy zapisany!");
+            renderTable();
+            resetForm();
+        })
+        .catch(err => console.error("Błąd przy zapisie:", err));
+}
+
 
 
   
@@ -334,6 +352,7 @@ db.collection("testCases").add({
         renderTable();
     });
 }
+
 
 
 
