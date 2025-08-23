@@ -18,6 +18,7 @@ auth.onAuthStateChanged(user => {
     } else {
         currentUser = user;
         loadTestCases();
+        renderUserPanel();
     }
 });
 
