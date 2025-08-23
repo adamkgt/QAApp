@@ -33,17 +33,17 @@
     </div>
 
     <!-- 🔹 Form -->
-    <form id="testForm" onsubmit="event.preventDefault(); saveTestCase();" class="mb-4">
-      <input type="hidden" id="editIndex" />
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label for="testName" class="form-label">Tytuł</label>
-          <input type="text" class="form-control" id="testName" required />
-        </div>
-        <div class="col-md-6">
-          <label for="testDesc" class="form-label">Opis</label>
-          <input type="text" class="form-control" id="testDesc" />
-        </div>
+<form id="testForm" class="mb-4">
+  <input type="hidden" id="editIndex" />
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label for="testName" class="form-label">Tytuł</label>
+      <input type="text" class="form-control" id="testName" required />
+    </div>
+    <div class="col-md-6">
+      <label for="testDesc" class="form-label">Opis</label>
+      <input type="text" class="form-control" id="testDesc" />
+    </div>
         <div class="col-md-6">
           <label for="testSteps" class="form-label">Kroki</label>
           <textarea class="form-control" id="testSteps" rows="3"></textarea>
@@ -74,12 +74,12 @@
             <option value="Krytyczny">Krytyczny</option>
           </select>
         </div>
-      </div>
-      <div class="d-flex gap-2 mt-3">
-        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
-      </div>
-    </form>
+  </div>
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
+  </div>
+</form>
 
     <!-- 🔹 Filtry -->
     <div class="row g-2 mb-3">
@@ -164,3 +164,4 @@
   </div>
 </body>
 </html>
+
