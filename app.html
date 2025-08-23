@@ -1,88 +1,185 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QA - Przypadki Testowe</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="style.css">
-    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script defer src="script.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA - Przypadki Testowe</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDK -->
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script defer src="config.js"></script> <!-- zawsze przed script.js -->
+<script defer src="script.js"></script>
+
+  <!-- Libs -->
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+
 </head>
 <body class="bg-light">
-    <div class="container py-4">
+  <div class="container py-4">
 
-        <!-- Header -->
-        <div class="header-container d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center gap-3 justify-content-center flex-grow-1">
-                <img src="https://static.vecteezy.com/system/resources/previews/000/476/447/non_2x/vector-colorful-realistic-rooster.jpg"
-                     class="header-logo"
-                     alt="Logo" />
-                <h2 class="m-0 header-title">Test Case Management - QA</h2>
-            </div>
-            <button class="btn btn-outline-danger" onclick="logout()">
-                Wyloguj <i class="bi bi-box-arrow-right"></i>
-            </button>
-        </div>
-
-        <!-- Form -->
-        <form id="testForm" onsubmit="event.preventDefault(); saveTestCase();" class="mb-4">
-            <input type="hidden" id="editIndex" />
-            <div class="row g-3">
-                <div class="col-md-3"><label for="testId" class="form-label">ID testu</label><input type="text" class="form-control" id="testId" required /></div>
-                <div class="col-md-3"><label for="testName" class="form-label">Nazwa testu</label><input type="text" class="form-control" id="testName" required /></div>
-                <div class="col-md-6"><label for="testDesc" class="form-label">Opis</label><input type="text" class="form-control" id="testDesc" /></div>
-                <div class="col-md-6"><label for="testSteps" class="form-label">Kroki</label><textarea class="form-control" id="testSteps" rows="3"></textarea></div>
-                <div class="col-md-6"><label for="expectedResult" class="form-label">Oczekiwany rezultat</label><textarea class="form-control" id="expectedResult" rows="3"></textarea></div>
-                <div class="col-md-3">
-                    <label for="testStatus" class="form-label">Status</label>
-                    <select class="form-select" id="testStatus">
-                        <option value="">Wybierz status</option>
-                        <option value="Pass">Pass</option>
-                        <option value="Fail">Fail</option>
-                    </select>
-                </div>
-                <div class="col-md-3"><label for="testNotes" class="form-label">Uwagi</label><input type="text" class="form-control" id="testNotes" /></div>
-                <div class="col-md-3">
-                    <label for="testPriority" class="form-label">Priorytet</label>
-                    <select class="form-select" id="testPriority">
-                        <option value="">Brak</option>
-                        <option value="Niski">Niski</option>
-                        <option value="Średni">Średni</option>
-                        <option value="Wysoki">Wysoki</option>
-                        <option value="Krytyczny">Krytyczny</option>
-                    </select>
-                </div>
-            </div>
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
-                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść formularz</button>
-            </div>
-        </form>
-
-        <!-- Table -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle" id="testTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nazwa</th>
-                        <th>Opis</th>
-                        <th>Kroki</th>
-                        <th>Oczekiwany rezultat</th>
-                        <th>Status</th>
-                        <th>Uwagi</th>
-                        <th>Priorytet</th>
-                        <th>Akcje</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+    <!-- 🔹 Header -->
+    <div class="header-container d-flex align-items-center justify-content-between mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <img src="https://static.vecteezy.com/system/resources/previews/000/476/447/non_2x/vector-colorful-realistic-rooster.jpg"
+             class="header-logo"
+             alt="Logo" />
+        <h2 class="m-0 header-title">Test Case Management - QA</h2>
+      </div>
+      <button id="logoutBtn" class="btn btn-outline-danger">
+        Wyloguj <i class="bi bi-box-arrow-right"></i>
+      </button>
     </div>
+
+    <!-- 🔹 Form -->
+    <form id="testForm" onsubmit="event.preventDefault(); saveTestCase();" class="mb-4">
+      <input type="hidden" id="editIndex" />
+      <div class="row g-3">
+        <div class="col-md-3"><label for="testId" class="form-label">ID testu</label><input type="text" class="form-control" id="testId" required /></div>
+        <div class="col-md-3"><label for="testName" class="form-label">Nazwa testu</label><input type="text" class="form-control" id="testName" required /></div>
+        <div class="col-md-6"><label for="testDesc" class="form-label">Opis</label><input type="text" class="form-control" id="testDesc" /></div>
+        <div class="col-md-6"><label for="testSteps" class="form-label">Kroki</label><textarea class="form-control" id="testSteps" rows="3"></textarea></div>
+        <div class="col-md-6"><label for="expectedResult" class="form-label">Oczekiwany rezultat</label><textarea class="form-control" id="expectedResult" rows="3"></textarea></div>
+        <div class="col-md-3">
+          <label for="testStatus" class="form-label">Status</label>
+          <select class="form-select" id="testStatus">
+            <option value="">Wybierz status</option>
+            <option value="Pass">Pass</option>
+            <option value="Fail">Fail</option>
+          </select>
+        </div>
+        <div class="col-md-3"><label for="testNotes" class="form-label">Uwagi</label><input type="text" class="form-control" id="testNotes" /></div>
+        <div class="col-md-3">
+          <label for="testPriority" class="form-label">Priorytet</label>
+          <select class="form-select" id="testPriority">
+            <option value="">Brak</option>
+            <option value="Niski">Niski</option>
+            <option value="Średni">Średni</option>
+            <option value="Wysoki">Wysoki</option>
+            <option value="Krytyczny">Krytyczny</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść formularz</button>
+      </div>
+    </form>
+
+    <!-- 🔹 Filters -->
+    <h3 class="mb-3">Przypadki Testowe</h3>
+    <div class="row g-2 mb-3">
+      <div class="col-lg-3 col-md-6">
+        <label for="statusFilter" class="form-label mb-0">Filtr statusu:</label>
+        <select id="statusFilter" class="form-select" onchange="renderTable()">
+          <option value="all">Wszystkie</option>
+          <option value="Pass">Pass</option>
+          <option value="Fail">Fail</option>
+          <option value="unknown">Brak statusu</option>
+        </select>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label for="priorityFilter" class="form-label mb-0">Filtr priorytetu:</label>
+        <select id="priorityFilter" class="form-select" onchange="renderTable()">
+          <option value="all">Wszystkie</option>
+          <option value="Niski">Niski</option>
+          <option value="Średni">Średni</option>
+          <option value="Wysoki">Wysoki</option>
+          <option value="Krytyczny">Krytyczny</option>
+        </select>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <label for="searchQuery" class="form-label mb-0">Szukaj:</label>
+        <input id="searchQuery" class="form-control" placeholder="np. TC-001 lub 'Logowanie'" oninput="renderTable()" />
+      </div>
+      <div class="col-lg-2 d-flex align-items-end">
+        <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+          <i class="bi bi-funnel"></i> Wyczyść filtry
+        </button>
+      </div>
+    </div>
+
+    <!-- 🔹 Table -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle" id="testTable">
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortBy('id')">ID</th>
+            <th class="sortable" onclick="sortBy('name')">Nazwa</th>
+            <th>Opis</th>
+            <th>Kroki</th>
+            <th>Oczekiwany rezultat</th>
+            <th class="sortable" onclick="sortBy('status')">Status</th>
+            <th>Uwagi</th>
+            <th class="sortable" onclick="sortBy('priority')">Priorytet</th>
+            <th class="nowrap">Akcje</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="mb-4 mt-2 text-end">
+      <button class="btn btn-danger" onclick="deleteAllTestCases()"><i class="bi bi-trash"></i> Usuń wszystkie</button>
+    </div>
+
+    <!-- 🔹 Stats -->
+    <h4>Statystyki</h4>
+    <div class="progress mb-2">
+      <div id="barPass" class="progress-bar bg-success" style="width: 0%;">Pass</div>
+      <div id="barFail" class="progress-bar bg-danger" style="width: 0%;">Fail</div>
+      <div id="barUnknown" class="progress-bar bg-secondary" style="width: 0%;">Brak statusu</div>
+    </div>
+    <p id="statsSummary" class="fw-bold text-center"></p>
+    <p id="statsSummaryFiltered" class="text-center text-muted"></p>
+
+    <h4>Wizualizacja</h4>
+    <div class="row">
+      <div class="col-md-6"><canvas id="statusChart" width="400" height="200"></canvas></div>
+      <div class="col-md-6"><canvas id="trendChart" width="400" height="200"></canvas></div>
+    </div>
+
+    <!-- 🔹 Import / Export -->
+    <h4 class="mt-4">Import / Eksport</h4>
+    <div class="row g-2">
+      <div class="col-md-6"><input type="file" id="csvFile" class="form-control" accept=".csv" /></div>
+      <div class="col-md-6 d-flex gap-2">
+        <button onclick="importFromCSV()" class="btn btn-secondary"><i class="bi bi-file-earmark-arrow-up"></i> Importuj CSV</button>
+        <button onclick="exportToCSV()" class="btn btn-secondary"><i class="bi bi-file-earmark-arrow-down"></i> Eksportuj CSV</button>
+        <button onclick="exportToPDF()" class="btn btn-danger"><i class="bi bi-file-earmark-pdf"></i> Eksportuj PDF</button>
+      </div>
+    </div>
+
+    <!-- 🔹 History Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Historia zmian</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <pre id="historyContent"></pre>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </body>
 </html>
+
+
