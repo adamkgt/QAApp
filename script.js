@@ -1,6 +1,6 @@
 // Inicjalizacja Firebase
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+
 
 // Logowanie
 if (document.getElementById("loginForm")) {
@@ -426,6 +426,7 @@ if (document.getElementById("testForm")) {
         renderTable();
     });
 }
+
 
 
 
