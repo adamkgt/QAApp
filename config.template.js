@@ -4,6 +4,5 @@ export const firebaseConfig = {
   projectId: "%FIREBASE_PROJECT_ID%",
   storageBucket: "%FIREBASE_STORAGE_BUCKET%",
   messagingSenderId: "%FIREBASE_MESSAGING_ID%",
-  appId: "%FIREBASE_APP_ID%",
-  measurementId "%FIREBASE_MEASUREMENT_ID%",
+  appId: "%FIREBASE_APP_ID%"
 };
