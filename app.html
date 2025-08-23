@@ -42,6 +42,15 @@
       </button>
     </div>
 
+
+    <!-- Panel użytkownika -->
+<div id="userPanel" class="card p-3 mb-3" style="max-width: 300px;">
+  <h5>Panel użytkownika</h5>
+  <p id="userEmail">Email: </p>
+  <p id="userStats">Testy: </p>
+  <button class="btn btn-sm btn-outline-primary" onclick="changePassword()">Zmień hasło</button>
+</div>
+
     <!-- 🔹 Form -->
     <form id="testForm" onsubmit="event.preventDefault(); saveTestCase();" class="mb-4">
       <input type="hidden" id="editIndex" />
@@ -182,6 +191,7 @@
   </div>
 </body>
 </html>
+
 
 
 
