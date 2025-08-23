@@ -16,12 +16,14 @@ const userPanel = document.getElementById("userPanel");
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
-    if (!currentUser) return;
+    const userPanel = document.getElementById('userPanel');
+    userPanel.className = 'd-flex gap-2 align-items-center';
     userPanel.innerHTML = `
         <span class="fw-bold">${currentUser.email}</span>
         <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
         <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
     `;
+
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
         if (newPassword) {
@@ -30,11 +32,11 @@ function renderUserPanel() {
                 .catch(err => alert('Błąd: ' + err.message));
         }
     });
+
     document.getElementById('logoutBtnPanel').addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = 'index.html');
     });
 }
-
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
