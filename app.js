@@ -216,47 +216,44 @@ function updateCharts() {
 // ------------------- Import / Export -------------------
 function importFromCSV() {
     const fileInput = document.getElementById('csvFile');
-    if (!fileInput.files.length) return alert('Wybierz plik CSV!');
+    if (!fileInput || !fileInput.files.length) return alert('Wybierz plik CSV');
 
     const file = fileInput.files[0];
     const reader = new FileReader();
 
-    reader.onload = async function(e) {
+    reader.onload = async (e) => {
         const text = e.target.result;
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const headers = lines[0].split(',').map(h => h.trim());
 
         for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => v.trim());
+            const row = lines[i].split(',').map(cell => cell.trim());
             const data = {};
-            headers.forEach((h, idx) => data[h] = values[idx] || '');
-            
-            // Dodaj pola dodatkowe
+            headers.forEach((h, idx) => {
+                data[h.toLowerCase()] = row[idx] || '';
+            });
+
             data.owner = currentUser.uid;
             data.history = [`Utworzono: ${new Date().toLocaleString()}`];
 
-            // Tworzenie dokumentu w Firestore
             try {
+                // Tworzymy dokument w Users/{uid}/testCases
                 await db.collection('Users')
                         .doc(currentUser.uid)
                         .collection('testCases')
-                        .doc(data.name)  // używamy nazwy jako ID dokumentu
+                        .doc(data.name) // używamy nazwy testu jako ID dokumentu
                         .set(data);
             } catch (err) {
-                console.error('Błąd zapisu CSV:', err);
+                console.error('Błąd importu:', err);
             }
         }
+
         alert('Import zakończony!');
-        loadTestCases(); // odśwież tabelę
+        loadTestCases(); // odświeżenie tabeli po imporcie
     };
 
     reader.readAsText(file);
 }
-
-
-
-
-
 
 
 function exportToCSV() {
@@ -289,15 +286,25 @@ function exportToPDF() {
 
 // ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', () => {
+    // Formularz zapisu testów
     if (testForm) {
         testForm.addEventListener('submit', e => {
             e.preventDefault();
             saveTestCase();
         });
     }
+
+    // Filtry
     if (statusFilter && priorityFilter && searchQuery) {
         statusFilter.addEventListener('change', renderTable);
         priorityFilter.addEventListener('change', renderTable);
         searchQuery.addEventListener('input', renderTable);
     }
+
+    // Import CSV
+    const csvInput = document.getElementById('csvFile');
+    if (csvInput) {
+        csvInput.addEventListener('change', importFromCSV);
+    }
 });
+
