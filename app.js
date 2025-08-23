@@ -24,9 +24,11 @@ auth.onAuthStateChanged(user => {
 
 // ------------------- Funkcja wczytująca testy -------------------
 function loadTestCases() {
+    if (!currentUser) return;
+
     db.collection('testCases')
       .where('owner', '==', currentUser.uid) // tylko własne testy
-      //.orderBy('createdAt', 'desc') // tymczasowo wyłączone, żeby uniknąć błędu indeksu
+      //.orderBy('createdAt', 'desc') // odblokuj po utworzeniu indeksu w Firestore
       .onSnapshot(snapshot => {
           testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderTable();
@@ -35,6 +37,7 @@ function loadTestCases() {
           alert("Nie udało się pobrać testów: " + err.message);
       });
 }
+
 
 // ------------------- Render panelu użytkownika -------------------
 function renderUserPanel() {
