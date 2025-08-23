@@ -63,9 +63,9 @@ function renderUserPanel() {
     if (!userPanel || !currentUser) return;
 
     userPanel.innerHTML = `
-      <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
         ${currentUser.email}
-      </a>
+      </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
         <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
