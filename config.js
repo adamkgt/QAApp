@@ -8,6 +8,13 @@ const firebaseConfig = {
     appId: "1:514951940531:web:a6a2d9bf9c0e57e10923c6",
     measurementId: "G-3VCJZWPJ2F"
 };
-const app = firebase.initializeApp(firebaseConfig);
+// 🔹 Inicjalizacja Firebase
+firebase.initializeApp(firebaseConfig);
+
+// 🔹 Ustawienia globalne
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// 🔹 Eksport do innych plików (żeby script.js miał dostęp)
+window.auth = auth;
+window.db = db;
