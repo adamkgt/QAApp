@@ -53,6 +53,17 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+let currentUser = null;
+
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.href = 'index.html';
+    } else {
+        currentUser = user;
+        renderTable();
+    }
+});
+
 // ------------------- Zmienna globalna dla aktualnego użytkownika -------------------
 let currentUser = null;
 
@@ -440,6 +451,7 @@ function resetForm(){
         renderTable();
     });
 }
+
 
 
 
