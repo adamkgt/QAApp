@@ -56,6 +56,43 @@ function loadTestCases() {
       }, err => console.error(err));
 }
 
+// ------------------- Panel Usera -------------------
+
+function renderUserPanel() {
+    const userPanel = document.getElementById('userPanel');
+    if (!userPanel || !currentUser) return;
+
+    userPanel.innerHTML = `
+      <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+        ${currentUser.email}
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+        <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
+      </ul>
+    `;
+
+    document.getElementById('editProfileBtn').addEventListener('click', () => {
+        const newPassword = prompt('Podaj nowe hasło:');
+        if (newPassword) {
+            currentUser.updatePassword(newPassword)
+                .then(() => alert('Hasło zmienione!'))
+                .catch(err => alert('Błąd: ' + err.message));
+        }
+    });
+
+    document.getElementById('logoutBtnPanel').addEventListener('click', () => {
+        auth.signOut().then(() => window.location.href = 'index.html');
+    });
+}
+
+
+
+
+
+
+
+
 // ------------------- CRUD -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
