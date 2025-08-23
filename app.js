@@ -53,10 +53,12 @@ function loadTestCases() {
     db.collection('testCases')
       .where('owner', '==', currentUser.uid)
       .onSnapshot(snapshot => {
+          // Nadpisanie całej tablicy testCases
           testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderTable();
       }, err => console.error(err));
 }
+
 
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
