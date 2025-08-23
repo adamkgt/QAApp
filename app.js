@@ -52,41 +52,40 @@ auth.onAuthStateChanged(user => {
 
 // ------------------- Ładowanie przypadków testowych -------------------
 function loadTestCases() {
-    if (unsubscribeTestCases) unsubscribeTestCases();
-
-    unsubscribeTestCases = db.collection('testCases')
-        .where('owner', '==', currentUser.uid)
-        .onSnapshot(snapshot => {
-            testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTable();
-        }, err => console.error(err));
+    db.collection('Users')
+      .doc(currentUser.uid)
+      .collection('testCases')
+      .onSnapshot(snapshot => {
+          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderTable();
+      }, err => console.error(err));
 }
+
 
 // ------------------- CRUD -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
+    const testName = document.getElementById('testName').value; // użyjemy jako ID dokumentu
+
     const data = {
-        name: document.getElementById('testName').value,
+        name: testName,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        owner: currentUser.uid,
         history: [`${index === '' ? 'Utworzono' : 'Edytowano'}: ${new Date().toLocaleString()}`]
     };
 
-    if (index === '') {
-        db.collection('testCases').add(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
-    } else {
-        db.collection('testCases').doc(index).update(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
-    }
+    const userDocRef = db.collection('Users').doc(currentUser.uid);
+    const testCaseDocRef = userDocRef.collection('testCases').doc(testName);
+
+    testCaseDocRef.set(data, { merge: true }) // merge: true pozwala aktualizować bez nadpisywania całego dokumentu
+        .then(() => resetForm())
+        .catch(err => alert('Błąd zapisu: ' + err.message));
 }
+
 
 function editTestCase(id) {
     const tc = testCases.find(tc => tc.id === id);
