@@ -32,11 +32,11 @@ if (document.getElementById("testForm")) {
   }
 
   // Upewnij się, że logout podpięty do guzika
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", logout);
-  }
-}
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  firebase.auth().signOut().then(() => {
+    window.location.href = "index.html"; // wraca do logowania
+  });
+});
 
 
     // ------------------- CRUD Test Cases -------------------
@@ -311,6 +311,7 @@ if (document.getElementById("testForm")) {
         renderTable();
     });
 }
+
 
 
 
