@@ -11,8 +11,7 @@ const firebaseConfig = {
 // 🔹 Inicjalizacja Firebase
 firebase.initializeApp(firebaseConfig);
 
-// 🔹 Ustawienia globalne
-
+// TYLKO RAZ deklarujemy auth i db
 const auth = firebase.auth();
 const db = firebase.firestore();
 
