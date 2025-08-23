@@ -27,10 +27,23 @@
   <div class="container py-4">
 
     <!-- 🔹 Header -->
-    <div class="header-container d-flex align-items-center justify-content-between mb-4">
-      <h2 class="m-0">Test Case Management - QA</h2>
-      <div id="userPanel"></div>
+  <!-- 🔹 Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="#">QA Test Manager</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
+      <ul class="navbar-nav">
+        <!-- Panel użytkownika generowany przez JS -->
+        <li class="nav-item dropdown" id="userPanel"></li>
+      </ul>
     </div>
+  </div>
+</nav>
+
 
     <!-- 🔹 Form -->
 <form id="testForm" class="mb-4">
@@ -170,5 +183,6 @@
   </div>
 </body>
 </html>
+
 
 
