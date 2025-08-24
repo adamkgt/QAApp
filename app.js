@@ -62,31 +62,48 @@ function loadTestCases() {
 
 // ------------------- Panel użytkownika z awatarem -------------------
 function renderUserPanel() {
+    const userPanel = document.getElementById('userPanel');
     const userAvatar = document.getElementById('userAvatar');
     const userEmail = document.getElementById('userEmail');
 
-    if (!userAvatar || !userEmail) return;
+    if (!userPanel || !currentUser) return;
 
-    // Domyślny avatar i placeholder email
-    const defaultAvatar = 'img/default-avatar.png';
-    const defaultEmail = 'user@example.com';
+    // Ukryj panel domyślnie
+    userPanel.style.visibility = 'hidden';
 
-    // Ukryj elementy do czasu załadowania danych
-    userAvatar.style.visibility = 'hidden';
-    userEmail.style.visibility = 'hidden';
+    // Pobranie danych użytkownika z localStorage (awatar) lub Firestore
+    let avatar = localStorage.getItem('avatar_' + currentUser.uid) || 'img/default-avatar.png';
+    let email = currentUser.email || 'user@example.com';
 
-    // Pobranie danych z localStorage (jeśli użytkownik wcześniej ustawił)
-    const storedAvatar = localStorage.getItem('userAvatar') || defaultAvatar;
-    const storedEmail = localStorage.getItem('userEmail') || defaultEmail;
+    // Ustawienie awatara i emaila
+    userAvatar.src = avatar;
+    userEmail.textContent = email;
 
-    userAvatar.src = storedAvatar;
-    userEmail.textContent = storedEmail;
+    // Po ustawieniu widoczność panelu
+    userPanel.style.visibility = 'visible';
 
-    // Pokaż elementy
-    userAvatar.style.visibility = 'visible';
-    userEmail.style.visibility = 'visible';
+    // Zmiana hasła
+    const editBtn = document.getElementById('editProfileBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            const newPassword = prompt('Podaj nowe hasło:');
+            if (newPassword) {
+                currentUser.updatePassword(newPassword)
+                    .then(() => alert('Hasło zmienione!'))
+                    .catch(err => alert('Błąd: ' + err.message));
+            }
+        });
+    }
 
-    // Obsługa zmiany avatara
+    // Wylogowanie
+    const logoutBtn = document.getElementById('logoutBtnPanel');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+    }
+
+    // Podgląd i zmiana awatara (lokalnie)
     const changeAvatarBtn = document.getElementById('changeAvatarBtn');
     const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
     const avatarPreview = document.getElementById('avatarPreview');
@@ -123,7 +140,6 @@ function renderUserPanel() {
         saveAvatarBtn.addEventListener('click', () => {
             if (!selectedFile) return;
 
-            // Przycinanie i skalowanie do 64x64
             const reader = new FileReader();
             reader.onload = e => {
                 const img = new Image();
@@ -144,13 +160,10 @@ function renderUserPanel() {
                         64,
                         64
                     );
-
                     const dataURL = canvas.toDataURL('image/png');
-
-                    // Zapis do localStorage
-                    localStorage.setItem('userAvatar', dataURL);
+                    // Zapis lokalny w localStorage
+                    localStorage.setItem('avatar_' + currentUser.uid, dataURL);
                     userAvatar.src = dataURL;
-
                     avatarPreviewContainer.classList.add('d-none');
                     selectedFile = null;
                     alert('Awatar został zmieniony!');
@@ -159,37 +172,6 @@ function renderUserPanel() {
             };
             reader.readAsDataURL(selectedFile);
         });
-    }
-
-    // Obsługa zmiany hasła i wylogowania (pozostaje jak wcześniej)
-    const editBtn = document.getElementById('editProfileBtn');
-    if (editBtn && currentUser) {
-        editBtn.addEventListener('click', () => {
-            const newPassword = prompt('Podaj nowe hasło:');
-            if (newPassword) {
-                currentUser.updatePassword(newPassword)
-                    .then(() => alert('Hasło zmienione!'))
-                    .catch(err => alert('Błąd: ' + err.message));
-            }
-        });
-    }
-
-    const logoutBtn = document.getElementById('logoutBtnPanel');
-    if (logoutBtn && auth) {
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                // Czyścimy localStorage przy wylogowaniu
-                localStorage.removeItem('userAvatar');
-                localStorage.removeItem('userEmail');
-                window.location.href = 'index.html';
-            });
-        });
-    }
-
-    // Zapis emaila użytkownika do localStorage (jeśli dostępny)
-    if (currentUser && currentUser.email) {
-        localStorage.setItem('userEmail', currentUser.email);
-        userEmail.textContent = currentUser.email;
     }
 }
 
