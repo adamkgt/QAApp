@@ -62,65 +62,39 @@ function loadTestCases() {
 
 // ------------------- Panel użytkownika z awatarem -------------------
 function renderUserPanel() {
-    const userPanel = document.getElementById('userPanel');
-    if (!userPanel) return;
+    const userAvatar = document.getElementById('userAvatar');
+    const userEmail = document.getElementById('userEmail');
 
-    // Ukryj panel na czas ładowania
-    userPanel.style.visibility = 'hidden';
+    if (!userAvatar || !userEmail) return;
 
-    firebase.auth().onAuthStateChanged(user => {
-        if (!user) return;
-        currentUser = user;
+    // Domyślny avatar i placeholder email
+    const defaultAvatar = 'img/default-avatar.png';
+    const defaultEmail = 'user@example.com';
 
-        // Pobierz awatar z localStorage jeśli istnieje
-        let avatarSrc = localStorage.getItem('userAvatar') || 'img/default-avatar.png';
+    // Ukryj elementy do czasu załadowania danych
+    userAvatar.style.visibility = 'hidden';
+    userEmail.style.visibility = 'hidden';
 
-        userPanel.innerHTML = `
-          <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-            <img id="userAvatar" src="${avatarSrc}" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
-            <span id="userEmail">${currentUser.email}</span>
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
-            <li>
-              <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-              <div id="avatarPreviewContainer" class="p-2 d-none">
-                <p class="mb-1 small">Podgląd nowego awatara:</p>
-                <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-                <div class="mt-2 d-flex gap-2">
-                  <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
-                  <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
-                </div>
-              </div>
-            </li>
-            <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
-          </ul>
-        `;
+    // Pobranie danych z localStorage (jeśli użytkownik wcześniej ustawił)
+    const storedAvatar = localStorage.getItem('userAvatar') || defaultAvatar;
+    const storedEmail = localStorage.getItem('userEmail') || defaultEmail;
 
-        // Zmiana hasła
-        const editBtn = document.getElementById('editProfileBtn');
-        editBtn.addEventListener('click', () => {
-            const newPassword = prompt('Podaj nowe hasło:');
-            if (newPassword) {
-                currentUser.updatePassword(newPassword)
-                    .then(() => alert('Hasło zmienione!'))
-                    .catch(err => alert('Błąd: ' + err.message));
-            }
-        });
+    userAvatar.src = storedAvatar;
+    userEmail.textContent = storedEmail;
 
-        // Wylogowanie
-        document.getElementById('logoutBtnPanel').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
+    // Pokaż elementy
+    userAvatar.style.visibility = 'visible';
+    userEmail.style.visibility = 'visible';
 
-        // Zmiana awatara
-        const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-        const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
-        const avatarPreview = document.getElementById('avatarPreview');
-        const saveAvatarBtn = document.getElementById('saveAvatarBtn');
-        const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
-        let selectedFile = null;
+    // Obsługa zmiany avatara
+    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
+    let selectedFile = null;
 
+    if (changeAvatarBtn && avatarPreviewContainer && avatarPreview && saveAvatarBtn && cancelAvatarBtn) {
         changeAvatarBtn.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -149,6 +123,7 @@ function renderUserPanel() {
         saveAvatarBtn.addEventListener('click', () => {
             if (!selectedFile) return;
 
+            // Przycinanie i skalowanie do 64x64
             const reader = new FileReader();
             reader.onload = e => {
                 const img = new Image();
@@ -158,17 +133,24 @@ function renderUserPanel() {
                     canvas.height = 64;
                     const ctx = canvas.getContext('2d');
                     const size = Math.min(img.width, img.height);
-                    ctx.drawImage(img,
+                    ctx.drawImage(
+                        img,
                         (img.width - size) / 2,
                         (img.height - size) / 2,
-                        size, size,
-                        0, 0, 64, 64
+                        size,
+                        size,
+                        0,
+                        0,
+                        64,
+                        64
                     );
+
                     const dataURL = canvas.toDataURL('image/png');
 
                     // Zapis do localStorage
                     localStorage.setItem('userAvatar', dataURL);
-                    document.getElementById('userAvatar').src = dataURL;
+                    userAvatar.src = dataURL;
+
                     avatarPreviewContainer.classList.add('d-none');
                     selectedFile = null;
                     alert('Awatar został zmieniony!');
@@ -177,11 +159,40 @@ function renderUserPanel() {
             };
             reader.readAsDataURL(selectedFile);
         });
+    }
 
-        // Pokaż panel dopiero po załadowaniu danych
-        userPanel.style.visibility = 'visible';
-    });
+    // Obsługa zmiany hasła i wylogowania (pozostaje jak wcześniej)
+    const editBtn = document.getElementById('editProfileBtn');
+    if (editBtn && currentUser) {
+        editBtn.addEventListener('click', () => {
+            const newPassword = prompt('Podaj nowe hasło:');
+            if (newPassword) {
+                currentUser.updatePassword(newPassword)
+                    .then(() => alert('Hasło zmienione!'))
+                    .catch(err => alert('Błąd: ' + err.message));
+            }
+        });
+    }
+
+    const logoutBtn = document.getElementById('logoutBtnPanel');
+    if (logoutBtn && auth) {
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                // Czyścimy localStorage przy wylogowaniu
+                localStorage.removeItem('userAvatar');
+                localStorage.removeItem('userEmail');
+                window.location.href = 'index.html';
+            });
+        });
+    }
+
+    // Zapis emaila użytkownika do localStorage (jeśli dostępny)
+    if (currentUser && currentUser.email) {
+        localStorage.setItem('userEmail', currentUser.email);
+        userEmail.textContent = currentUser.email;
+    }
 }
+
 
 
 
