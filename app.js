@@ -297,7 +297,15 @@ function updateStats() {
 }
 
 // ------------------- Import / Export CSV -------------------
-// Funkcja czyszczenia pola pliku
+function clearCSVFile() {
+    const fileInput = document.getElementById('csvFile');
+    if (!fileInput) return;
+
+    fileInput.value = ''; // resetuje wybrany plik
+    showToast('Pole pliku zostało wyczyszczone.', 'warning');
+}
+
+
 function importFromCSV() {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
