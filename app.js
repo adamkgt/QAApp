@@ -108,94 +108,118 @@ function renderUserPanel() {
     }
 
     // Podgląd i zmiana awatara (lokalnie w Base64)
-    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
-    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
-    let selectedFile = null;
+function renderUserPanel() {
+  const userPanelEmail = document.getElementById('userEmail');
+  const userAvatar = document.getElementById('userAvatar');
+  if (!currentUser || !userPanelEmail || !userAvatar) return;
 
-    if (changeAvatarBtn && avatarPreviewContainer && avatarPreview && saveAvatarBtn && cancelAvatarBtn) {
-        changeAvatarBtn.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.click();
+  // Pobierz dane z localStorage jeśli są
+  const savedEmail = localStorage.getItem('userEmail');
+  const savedAvatar = localStorage.getItem('userAvatar');
 
-            input.onchange = () => {
-                selectedFile = input.files[0];
-                if (!selectedFile) return;
+  if (savedEmail) userPanelEmail.textContent = savedEmail;
+  if (savedAvatar) userAvatar.src = savedAvatar;
 
-                const reader = new FileReader();
-                reader.onload = e => {
-                    avatarPreview.src = e.target.result;
-                    avatarPreviewContainer.classList.remove('d-none');
-                };
-                reader.readAsDataURL(selectedFile);
-            };
-        });
+  // Pobranie awatara z Firestore i zapis do localStorage
+  firebase.firestore().collection('Users').doc(currentUser.uid).get()
+    .then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.avatar) {
+          userAvatar.src = data.avatar;
+          localStorage.setItem('userAvatar', data.avatar);
+        }
+        if (currentUser.email) {
+          userPanelEmail.textContent = currentUser.email;
+          localStorage.setItem('userEmail', currentUser.email);
+        }
+      }
+    }).catch(err => console.error('Błąd pobierania awatara:', err));
 
-        cancelAvatarBtn.addEventListener('click', () => {
-            avatarPreviewContainer.classList.add('d-none');
-            avatarPreview.src = '';
-            selectedFile = null;
-        });
-
-        saveAvatarBtn.addEventListener('click', () => {
-            if (!selectedFile) return;
-
-            const reader = new FileReader();
-            reader.onload = e => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64;
-                    canvas.height = 64;
-                    const ctx = canvas.getContext('2d');
-                    const size = Math.min(img.width, img.height);
-                    ctx.drawImage(
-                        img,
-                        (img.width - size) / 2,
-                        (img.height - size) / 2,
-                        size,
-                        size,
-                        0,
-                        0,
-                        64,
-                        64
-                    );
-
-                    const dataURL = canvas.toDataURL('image/png');
-
-                    // Zapis do Firestore
-                    userDocRef.update({ avatar: dataURL })
-                        .then(() => {
-                            userAvatar.src = dataURL;
-                            avatarPreviewContainer.classList.add('d-none');
-                            selectedFile = null;
-                            alert('Awatar został zmieniony!');
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            alert('Błąd przy zapisie awatara: ' + err.message);
-                        });
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(selectedFile);
-        });
+  // Zmiana hasła
+  document.getElementById('editProfileBtn').addEventListener('click', () => {
+    const newPassword = prompt('Podaj nowe hasło:');
+    if (newPassword) {
+      currentUser.updatePassword(newPassword)
+        .then(() => alert('Hasło zmienione!'))
+        .catch(err => alert('Błąd: ' + err.message));
     }
+  });
+
+  // Wylogowanie
+  document.getElementById('logoutBtnPanel').addEventListener('click', () => {
+    auth.signOut().then(() => {
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userAvatar');
+      window.location.href = 'index.html';
+    });
+  });
+
+  // Podgląd i zmiana awatara (w LocalStorage)
+  const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+  const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+  const avatarPreview = document.getElementById('avatarPreview');
+  const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+  const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
+  let selectedFile = null;
+
+  changeAvatarBtn.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+
+    input.onchange = () => {
+      selectedFile = input.files[0];
+      if (!selectedFile) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        avatarPreview.src = e.target.result;
+        avatarPreviewContainer.classList.remove('d-none');
+      };
+      reader.readAsDataURL(selectedFile);
+    };
+  });
+
+  cancelAvatarBtn.addEventListener('click', () => {
+    avatarPreviewContainer.classList.add('d-none');
+    avatarPreview.src = '';
+    selectedFile = null;
+  });
+
+  saveAvatarBtn.addEventListener('click', () => {
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const size = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 64, 64);
+
+        const dataURL = canvas.toDataURL('image/png');
+        userAvatar.src = dataURL;
+        avatarPreviewContainer.classList.add('d-none');
+        selectedFile = null;
+
+        // Zapis do Firestore i LocalStorage
+        firebase.firestore().collection('Users').doc(currentUser.uid).set({
+          avatar: dataURL
+        }, { merge: true });
+        localStorage.setItem('userAvatar', dataURL);
+
+        alert('Awatar został zmieniony!');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(selectedFile);
+  });
 }
-
-// Wywołanie po zalogowaniu użytkownika
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        renderUserPanel();
-    } else {
-        window.location.href = 'index.html';
-    }
-});
 
 
 
