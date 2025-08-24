@@ -442,12 +442,17 @@ function exportToPDF() {
 }
 
 // ------------------- Init -------------------
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('testForm')?.addEventListener('submit', e=>{ e.preventDefault(); saveTestCase(); });
     document.getElementById('statusFilter')?.addEventListener('change', renderTable);
     document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn').addEventListener('click', importFromCSV);
     document.getElementById('clearCSVFile').addEventListener('click', clearCSVFile);
-    
+
+    // Zaznacz / odznacz wszystkie checkboxy
+    document.getElementById('selectAll')?.addEventListener('change', function() {
+        const checked = this.checked;
+        document.querySelectorAll('.selectTest').forEach(cb => cb.checked = checked);
+    });
 });
