@@ -189,37 +189,40 @@
     </div>
   </div>
 
+  
+
 <div class="row g-2 mt-4">
   <div class="col-md-4">
     <div class="input-group">
       <input type="file" id="csvFile" class="form-control">
-      <button class="btn btn-outline-secondary" type="button" id="clearCSVFile">&times;</button>
+      <button class="btn btn-outline-secondary" type="button" id="clearCSVFile">
+        &times;
+      </button>
     </div>
   </div>
   <div class="col-md-2">
-    <button class="btn btn-outline-secondary w-100" id="importCSVBtn">
+    <button class="btn btn-outline-primary w-100" id="importCSVBtn">
       <i class="bi bi-file-earmark-arrow-up"></i> Import CSV
     </button>
   </div>
   <div class="col-md-2">
-    <button class="btn btn-outline-secondary w-100" onclick="exportToCSV()">
+    <button class="btn btn-outline-success w-100" onclick="exportToCSV()">
       <i class="bi bi-file-earmark-arrow-down"></i> Eksport CSV
     </button>
   </div>
   <div class="col-md-2">
-    <button class="btn btn-outline-secondary w-100" onclick="exportToPDF()">
+    <button class="btn btn-outline-warning w-100" onclick="exportToPDF()">
       <i class="bi bi-file-earmark-pdf"></i> Eksport PDF
     </button>
   </div>
 </div>
 
 
-</div>
-
 <!-- Toast root -->
 <div id="toastRoot"></div>
 
 </body>
 </html>
+
 
 
