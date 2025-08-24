@@ -20,8 +20,12 @@ function showToast(message, type = 'success', duration = 3000) {
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
-        toastRoot.className = 'position-fixed top-0 end-0 p-3';
+        toastRoot.style.position = 'fixed';
+        toastRoot.style.top = '0';
+        toastRoot.style.right = '0';
+        toastRoot.style.padding = '1rem';
         toastRoot.style.zIndex = 1100;
+        toastRoot.style.pointerEvents = 'none';
         document.body.appendChild(toastRoot);
     }
 
@@ -41,23 +45,21 @@ function showToast(message, type = 'success', duration = 3000) {
 
     toastRoot.appendChild(toast);
 
-    // Zdarzenie dla przycisku zamykania
+    // Przycisk zamykania
     const closeBtn = toast.querySelector('.btn-close');
-    closeBtn.addEventListener('click', () => {
-        hideToast(toast);
-    });
+    closeBtn.addEventListener('click', () => hideToast(toast));
 
-    // Wyzwalamy animację wjazdu
+    // Wjazd toastu
     requestAnimationFrame(() => {
         toast.classList.add('show');
     });
 
-    // Po czasie duration toast zaczyna wyjazd
-    setTimeout(() => {
-        hideToast(toast);
-    }, duration);
+    // Wyjazd po czasie duration
+    const timer = setTimeout(() => hideToast(toast), duration);
 
+    // Funkcja chowająca toast
     function hideToast(toastEl) {
+        clearTimeout(timer);
         toastEl.classList.remove('show');
         toastEl.classList.add('hide');
         toastEl.addEventListener('transitionend', () => {
@@ -65,6 +67,7 @@ function showToast(message, type = 'success', duration = 3000) {
         }, { once: true });
     }
 }
+
 
 
 // ------------------- Funkcja użytkownika -------------------
