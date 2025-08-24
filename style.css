@@ -123,34 +123,29 @@ tr:hover .unknown-badge { box-shadow: 0 4px 10px rgba(158,158,158,0.4); }
     top: 1rem;
     right: 1rem;
     z-index: 1100;
-    pointer-events: none; /* nie blokuje tła */
+    pointer-events: none;
 }
 
 #toastRoot .toast {
-    pointer-events: auto; /* klikany */
+    pointer-events: auto;
     min-width: 250px;
     max-width: 350px;
     margin-top: 0.5rem;
     border-radius: 0.5rem;
     box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2);
     opacity: 0;
-    transform: translate3d(100%,0,0); /* start poza ekranem */
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: translateX(120%);
+    transition: transform 0.5s ease, opacity 0.5s ease;
 }
 
 .toast.show {
     opacity: 1;
-    transform: translate3d(0,0,0); /* wjazd */
+    transform: translateX(0);
 }
 
 .toast.hide {
     opacity: 0;
-    transform: translate3d(100%,0,0); /* wyjazd */
-}
-
-.toast-body {
-    font-size: 0.9rem;
-    line-height: 1.2;
+    transform: translateX(120%);
 }
 
 .toast-success { background-color: #28a745 !important; color: #fff !important; }
@@ -161,10 +156,9 @@ tr:hover .unknown-badge { box-shadow: 0 4px 10px rgba(158,158,158,0.4); }
     opacity: 0.7;
     transition: opacity 0.2s;
 }
+.toast .btn-close:hover { opacity: 1; }
 
-.toast .btn-close:hover {
-    opacity: 1;
-}
+
 
 
 
