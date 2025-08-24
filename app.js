@@ -17,40 +17,37 @@ function showToast(message, type = 'success', duration = 3000) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
         toastRoot.style.position = 'fixed';
-        toastRoot.style.top = '0';
-        toastRoot.style.right = '0';
-        toastRoot.style.padding = '1rem';
+        toastRoot.style.top = '1rem';
+        toastRoot.style.right = '1rem';
         toastRoot.style.zIndex = 1100;
         document.body.appendChild(toastRoot);
     }
 
     const toast = document.createElement('div');
     toast.className = `toast toast-slide toast-${type}`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
+    toast.style.minWidth = '250px';
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-
     toastRoot.appendChild(toast);
 
     const closeBtn = toast.querySelector('.btn-close');
     closeBtn.addEventListener('click', () => hideToast(toast));
 
-    requestAnimationFrame(() => { toast.classList.add('show'); });
+    requestAnimationFrame(() => toast.classList.add('show'));
 
-    setTimeout(() => { hideToast(toast); }, duration);
+    setTimeout(() => hideToast(toast), duration);
 
-    function hideToast(toastEl) {
-        toastEl.classList.remove('show');
-        toastEl.classList.add('hide');
-        toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
+    function hideToast(el) {
+        el.classList.remove('show');
+        el.classList.add('hide');
+        el.addEventListener('transitionend', () => el.remove(), { once: true });
     }
 }
+
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
@@ -303,8 +300,7 @@ function updateStats() {
 // Funkcja czyszczenia pola pliku
 function clearCSVFile() {
   const oldInput = document.getElementById('csvFile');
-  const newInput = oldInput.cloneNode(true); // nowy input bez pliku
-  oldInput.parentNode.replaceChild(newInput, oldInput);
+  oldInput.value = ''; // usuwa wybrany plik
 }
 
 function importFromCSV() {
