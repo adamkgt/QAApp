@@ -24,27 +24,27 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-light">
-  <!-- Navbar -->
-  <nav class="navbar navbar-dark bg-dark px-3">
+
+  <!-- Navbar / Panel użytkownika -->
+  <nav class="navbar navbar-dark bg-dark px-3 mb-4">
     <a class="navbar-brand d-flex align-items-center" href="#">
       <i class="bi bi-shield-lock me-2"></i>
       QA Test Management
     </a>
 
     <div class="dropdown ms-auto" id="userPanel">
-      <!-- renderUserPanel() wstawi awatar i email -->
       <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
         <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
         <span id="userEmail">user@example.com</span>
       </a>
-      <ul class="dropdown-menu dropdown-menu-end">
+      <ul class="dropdown-menu dropdown-menu-end p-2">
         <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
         <li>
           <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-          <div id="avatarPreviewContainer" class="p-2 d-none">
+          <div id="avatarPreviewContainer" class="p-2 d-none border rounded mt-2 text-center">
             <p class="mb-1 small">Podgląd nowego awatara:</p>
-            <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-            <div class="mt-2 d-flex gap-2">
+            <img id="avatarPreview" src="" class="rounded-circle mb-2" width="64" height="64" alt="Podgląd" />
+            <div class="d-flex justify-content-center gap-2">
               <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
               <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
             </div>
