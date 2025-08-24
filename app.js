@@ -166,7 +166,12 @@ function loadTestCases() {
 
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
+
+    // Generowanie ID, jeśli nowy test case
+    const id = document.getElementById('testID').value || Date.now().toString();
+
     const t = {
+        id: id,
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -175,12 +180,23 @@ function saveTestCase() {
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value
     };
-    if (index) testCases[index] = t;
-    else testCases.push(t);
+
+    if(index) {
+        testCases[index] = t;
+    } else {
+        testCases.push(t);
+    }
+
+    // zapis do localStorage
     localStorage.setItem('testCases', JSON.stringify(testCases));
+
+    // zapis do Firebase (kolekcja 'TestCases', dokument ID = t.id)
+    db.collection('TestCases').doc(t.id).set(t)
+      .then(() => showToast('Test zapisany w Firebase!', 'success'))
+      .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
+
     resetForm();
     renderTable();
-    showToast('Test zapisany!', 'success');
     updateStats();
 }
 
@@ -221,6 +237,7 @@ function deleteAllTestCases() {
 
 function editTestCase(i) {
     const t = testCases[i];
+    document.getElementById('testID').value = t.id;
     document.getElementById('testName').value = t.title;
     document.getElementById('testDesc').value = t.desc;
     document.getElementById('testSteps').value = t.steps;
@@ -236,6 +253,7 @@ function renderTable() {
     const tbody = document.querySelector('#testTable tbody');
     if(!tbody) return;
     tbody.innerHTML = '';
+
     const statusFilter = document.getElementById('statusFilter')?.value || 'all';
     const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
     const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
@@ -247,6 +265,8 @@ function renderTable() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
+            <td>${t.id}</td>
             <td>${t.title}</td>
             <td>${t.desc}</td>
             <td>${t.steps}</td>
@@ -261,7 +281,37 @@ function renderTable() {
         `;
         tbody.appendChild(tr);
     });
+
+    document.getElementById('selectAll')?.addEventListener('change', (e)=>{
+        document.querySelectorAll('.selectTest').forEach(cb => cb.checked = e.target.checked);
+    });
 }
+
+function deleteSelectedTestCases() {
+    const selectedIndexes = Array.from(document.querySelectorAll('.selectTest:checked'))
+                                .map(cb => parseInt(cb.dataset.index))
+                                .sort((a,b) => b-a); // od końca, żeby splice działało
+
+    if(selectedIndexes.length === 0) return showToast('Nie zaznaczono testów!', 'warning');
+    if(!confirm(`Usunąć ${selectedIndexes.length} zaznaczone testy?`)) return;
+
+    selectedIndexes.forEach(i => {
+        const t = testCases[i];
+        // usuń z Firebase
+        db.collection('TestCases').doc(t.id).delete().catch(err => console.error(err));
+        // usuń z lokalnej tablicy
+        testCases.splice(i,1);
+    });
+
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    renderTable();
+    updateStats();
+    showToast(`${selectedIndexes.length} test(y) usunięty(e)!`, 'warning');
+}
+
+
+
+
 
 // ------------------- Statystyki -------------------
 let statusChartInstance = null;
