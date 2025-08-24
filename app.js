@@ -408,4 +408,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
             importFromCSV();
         });
     }
+    // ✅ Sukces
+document.getElementById("testSuccessBtn")?.addEventListener("click", () => {
+    showToast("Operacja zakończona sukcesem ✅", "success");
+});
+
+// ❌ Błąd
+document.getElementById("testErrorBtn")?.addEventListener("click", () => {
+    showToast("Wystąpił błąd ❌", "danger");
+});
+
+// ⚠️ Ostrzeżenie
+document.getElementById("testWarningBtn")?.addEventListener("click", () => {
+    showToast("To jest ostrzeżenie ⚠️", "warning");
 });
