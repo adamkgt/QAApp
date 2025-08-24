@@ -13,34 +13,37 @@ const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
 // ------------------- Toast (animowany) -------------------
-function showToast(message, type = 'success', opts = {}) {
-  const toastEl = document.getElementById('appToast');
-  const toastMsg = document.getElementById('toastMessage');
-  if (!toastEl || !toastMsg) return;
+function showToast(message, type = "success") {
+    const toastContainer = document.getElementById("toastRoot");
+    if (!toastContainer) return;
 
-  // Ustaw treść
-  toastMsg.textContent = message;
+    // Utworzenie elementu toast
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-white toast-${type} toast-slide`;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.setAttribute("aria-atomic", "true");
 
-  // Podmień wariant kolorystyczny
-  toastEl.classList.remove(
-    'text-bg-success','text-bg-danger','text-bg-warning','text-bg-info',
-    'text-bg-primary','text-bg-secondary','text-bg-dark','text-bg-light'
-  );
-  toastEl.classList.add(`text-bg-${type}`);
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
 
-  // Zrestartuj animację (gdy kilka toastów idzie szybko po sobie)
-  toastEl.classList.remove('show');
-  // wymuś reflow
-  void toastEl.offsetWidth;
+    toastContainer.appendChild(toast);
 
-  const instance = bootstrap.Toast.getOrCreateInstance(toastEl, {
-    delay: opts.delay ?? 3000,
-    autohide: opts.autohide ?? true,
-    animation: true
-  });
+    // Inicjalizacja Bootstrapa
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
 
-  instance.show();
+    // Po ukryciu usuń element z DOM
+    toast.addEventListener("hidden.bs.toast", () => {
+        toast.remove();
+    });
+
+    bsToast.show();
 }
+
 
 // ------------------- Funkcja użytkownika -------------------
 function renderUserPanel() {
