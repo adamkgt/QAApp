@@ -61,52 +61,51 @@ function loadTestCases() {
 }
 
 // ------------------- Panel użytkownika z awatarem -------------------
+let currentUser = null;
+
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        renderUserPanel();
+    } else {
+        // brak zalogowanego użytkownika
+        window.location.href = 'index.html';
+    }
+});
+
 function renderUserPanel() {
     const userPanel = document.getElementById('userPanel');
     if (!userPanel || !currentUser) return;
 
-    // Tworzymy dynamiczny HTML panelu
+    // Pobranie awatara z localStorage (lub ustawienie default)
+    let avatar = localStorage.getItem(`avatar_${currentUser.uid}`) || 'img/default-avatar.png';
+
     userPanel.innerHTML = `
-      <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-        <img id="userAvatar" src="" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
-        <span id="userEmail"></span>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
-        <li>
-          <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-          <div id="avatarPreviewContainer" class="p-2 d-none">
-            <p class="mb-1 small">Podgląd nowego awatara:</p>
-            <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-            <div class="mt-2 d-flex gap-2">
-              <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
-              <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
+      <div class="dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
+          <img id="userAvatar" src="${avatar}" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
+          <span id="userEmail">${currentUser.email}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+          <li>
+            <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
+            <div id="avatarPreviewContainer" class="p-2 d-none">
+              <p class="mb-1 small">Podgląd nowego awatara:</p>
+              <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
+              <div class="mt-2 d-flex gap-2">
+                <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
+                <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
+              </div>
             </div>
-          </div>
-        </li>
-        <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
-      </ul>
+          </li>
+          <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
+        </ul>
+      </div>
     `;
 
-    const userEmailSpan = document.getElementById('userEmail');
-    const userAvatarImg = document.getElementById('userAvatar');
-
-    // ustawienie emaila
-    userEmailSpan.textContent = currentUser.email;
-
-    // Pobranie awatara z Firestore
-    firebase.firestore().collection('Users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists && doc.data().avatar) {
-            userAvatarImg.src = doc.data().avatar;
-        } else {
-            userAvatarImg.src = 'img/default-avatar.png'; // lokalny domyślny avatar
-        }
-    }).catch(() => {
-        userAvatarImg.src = 'img/default-avatar.png';
-    });
-
-    // Zmiana hasła
-    document.getElementById('editProfileBtn').addEventListener('click', () => {
+    const editBtn = document.getElementById('editProfileBtn');
+    editBtn.addEventListener('click', () => {
         const newPassword = prompt('Podaj nowe hasło:');
         if (newPassword) {
             currentUser.updatePassword(newPassword)
@@ -115,20 +114,19 @@ function renderUserPanel() {
         }
     });
 
-    // Wylogowanie
-    document.getElementById('logoutBtnPanel').addEventListener('click', () => {
-        auth.signOut().then(() => window.location.href = 'index.html');
+    const logoutBtn = document.getElementById('logoutBtnPanel');
+    logoutBtn.addEventListener('click', () => {
+        firebase.auth().signOut().then(() => window.location.href = 'index.html');
     });
 
-    // Podgląd i zapis awatara lokalnie
-    const changeBtn = document.getElementById('changeAvatarBtn');
-    const previewContainer = document.getElementById('avatarPreviewContainer');
-    const previewImg = document.getElementById('avatarPreview');
-    const saveBtn = document.getElementById('saveAvatarBtn');
-    const cancelBtn = document.getElementById('cancelAvatarBtn');
+    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
     let selectedFile = null;
 
-    changeBtn.addEventListener('click', () => {
+    changeAvatarBtn.addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -140,22 +138,21 @@ function renderUserPanel() {
 
             const reader = new FileReader();
             reader.onload = e => {
-                previewImg.src = e.target.result;
-                previewContainer.classList.remove('d-none');
+                avatarPreview.src = e.target.result;
+                avatarPreviewContainer.classList.remove('d-none');
             };
             reader.readAsDataURL(selectedFile);
         };
     });
 
-    cancelBtn.addEventListener('click', () => {
-        previewContainer.classList.add('d-none');
-        previewImg.src = '';
+    cancelAvatarBtn.addEventListener('click', () => {
+        avatarPreviewContainer.classList.add('d-none');
+        avatarPreview.src = '';
         selectedFile = null;
     });
 
-    saveBtn.addEventListener('click', () => {
+    saveAvatarBtn.addEventListener('click', () => {
         if (!selectedFile) return;
-
         const reader = new FileReader();
         reader.onload = e => {
             const img = new Image();
@@ -177,29 +174,17 @@ function renderUserPanel() {
                     64
                 );
                 const dataURL = canvas.toDataURL('image/png');
-
-                firebase.firestore().collection('Users').doc(currentUser.uid).set({ avatar: dataURL }, { merge: true })
-                    .then(() => {
-                        userAvatarImg.src = dataURL;
-                        previewContainer.classList.add('d-none');
-                        selectedFile = null;
-                        alert('Awatar został zmieniony!');
-                    }).catch(err => alert('Błąd zapisu awatara: ' + err.message));
+                localStorage.setItem(`avatar_${currentUser.uid}`, dataURL);
+                document.getElementById('userAvatar').src = dataURL;
+                avatarPreviewContainer.classList.add('d-none');
+                selectedFile = null;
+                alert('Awatar został zmieniony!');
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(selectedFile);
     });
 }
-
-// Wywołanie po zalogowaniu
-firebase.auth().onAuthStateChanged(user => {
-    currentUser = user;
-    if (user) renderUserPanel();
-});
-
-
-
 
 
 
