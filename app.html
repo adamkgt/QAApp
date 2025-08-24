@@ -84,17 +84,17 @@
     <div>
         <input type="file" id="csvFile">
         <button id="importCSVBtn">Import CSV</button>
-        <button id="exportCSVBtn">Eksport CSV</button>
-        <button id="exportPDFBtn">Eksport PDF</button>
+        <button id="exportCSVBtn" onclick="exportToCSV()">Eksport CSV</button>
+        <button id="exportPDFBtn" onclick="exportToPDF()">Eksport PDF</button>
     </div>
 
     <!-- Statystyki -->
     <div>
         <div id="statsSummary"></div>
         <div class="progress">
-            <div id="barPass" class="pass-badge" style="width:0%"></div>
-            <div id="barFail" class="fail-badge" style="width:0%"></div>
-            <div id="barUnknown" class="unknown-badge" style="width:0%"></div>
+            <div id="barPass" class="pass-badge" style="width:0%">Pass</div>
+            <div id="barFail" class="fail-badge" style="width:0%">Fail</div>
+            <div id="barUnknown" class="unknown-badge" style="width:0%">Brak</div>
         </div>
         <canvas id="statusChart" width="400" height="200"></canvas>
     </div>
