@@ -1,4 +1,4 @@
-// ------------------- Firebase -------------------
+// ------------------- Inicjalizacja Firebase -------------------
 const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
@@ -6,33 +6,45 @@ let testCases = [];
 let sortKey = '';
 let sortAsc = true;
 
-// ------------------- DOM -------------------
+// ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
 const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
+const toastRoot = document.getElementById("toastRoot");
 
-// ------------------- Toast -------------------
-function showToast(message, type='success') {
-    const root = document.getElementById('toastRoot');
-    const div = document.createElement('div');
-    div.className = `toast toast-slide toast-${type} show`;
-    div.setAttribute('role','alert');
-    div.setAttribute('aria-live','assertive');
-    div.setAttribute('aria-atomic','true');
-    div.innerHTML = `<div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentNode.parentNode.remove()"></button>
-    </div>`;
-    root.appendChild(div);
-    setTimeout(()=> { 
-        div.classList.remove('show'); 
-        div.classList.add('hide'); 
-        setTimeout(()=>div.remove(), 250); 
-    }, 3000);
+// ------------------- Toasty z animacją -------------------
+function showToast(message, type = 'success') {
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-bg-${type} border-0 toast-slide`;
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" aria-label="Close"></button>
+        </div>
+    `;
+    toastRoot.appendChild(toastEl);
+
+    // zamykanie po kliknięciu
+    const closeBtn = toastEl.querySelector('.btn-close');
+    closeBtn.addEventListener('click', () => hideToast(toastEl));
+
+    // animacja wjazdu
+    requestAnimationFrame(() => {
+        toastEl.classList.add('show');
+    });
+
+    // automatyczne ukrycie po 3s
+    setTimeout(() => hideToast(toastEl), 3000);
 }
 
-// ------------------- User Panel -------------------
+function hideToast(toastEl) {
+    toastEl.classList.remove('show');
+    toastEl.classList.add('hide');
+    toastEl.addEventListener('transitionend', () => toastEl.remove(), {once: true});
+}
+
+// ------------------- Funkcja użytkownika -------------------
 function renderUserPanel() {
     const userPanelEmail = document.getElementById('userEmail');
     const userAvatar = document.getElementById('userAvatar');
@@ -41,47 +53,57 @@ function renderUserPanel() {
     const avatarPreview = document.getElementById('avatarPreview');
     const saveAvatarBtn = document.getElementById('saveAvatarBtn');
     const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
-    if(!currentUser || !userPanelEmail || !userAvatar) return;
 
-    userAvatar.style.opacity = 0; userPanelEmail.style.opacity = 0;
+    if (!currentUser || !userPanelEmail || !userAvatar) return;
+
+    userAvatar.style.opacity = 0;
+    userPanelEmail.style.opacity = 0;
 
     const savedEmail = localStorage.getItem('userEmail');
     const savedAvatar = localStorage.getItem('userAvatar');
-    if(savedEmail) userPanelEmail.textContent = savedEmail;
-    if(savedAvatar) userAvatar.src = savedAvatar;
+    if (savedEmail) userPanelEmail.textContent = savedEmail;
+    if (savedAvatar) userAvatar.src = savedAvatar;
 
     db.collection('Users').doc(currentUser.uid).get()
-    .then(doc => {
-        if(doc.exists){
-            const data = doc.data();
-            if(data.avatar) userAvatar.src=data.avatar;
-            if(currentUser.email) userPanelEmail.textContent=currentUser.email;
-            localStorage.setItem('userAvatar', data.avatar||'');
-            localStorage.setItem('userEmail', currentUser.email||'');
-        } else {
-            userAvatar.src='img/default-avatar.png';
-            userPanelEmail.textContent=currentUser.email||'';
-            db.collection('Users').doc(currentUser.uid).set({avatar:'img/default-avatar.png'});
-            localStorage.setItem('userAvatar','img/default-avatar.png');
-            localStorage.setItem('userEmail',currentUser.email||'');
-        }
-    }).finally(()=>{
-        userAvatar.style.opacity=1;
-        userPanelEmail.style.opacity=1;
-    });
+      .then(doc => {
+          if (doc.exists) {
+              const data = doc.data();
+              if (data.avatar) userAvatar.src = data.avatar;
+              if (currentUser.email) userPanelEmail.textContent = currentUser.email;
+              localStorage.setItem('userAvatar', data.avatar || '');
+              localStorage.setItem('userEmail', currentUser.email || '');
+          } else {
+              userAvatar.src = 'img/default-avatar.png';
+              userPanelEmail.textContent = currentUser.email || '';
+              db.collection('Users').doc(currentUser.uid).set({avatar:'img/default-avatar.png'});
+              localStorage.setItem('userAvatar','img/default-avatar.png');
+              localStorage.setItem('userEmail',currentUser.email || '');
+          }
+      })
+      .catch(err => {
+          console.error(err);
+          userAvatar.src = 'img/default-avatar.png';
+          userPanelEmail.textContent = currentUser.email || '';
+      })
+      .finally(() => {
+          userAvatar.style.opacity = 1;
+          userPanelEmail.style.opacity = 1;
+      });
 
+    // Zmiana hasła
     const editBtn = document.getElementById('editProfileBtn');
     if(editBtn){
         editBtn.addEventListener('click', ()=>{
             const newPassword = prompt('Podaj nowe hasło:');
             if(newPassword){
                 currentUser.updatePassword(newPassword)
-                .then(()=> showToast('Hasło zmienione!','success'))
-                .catch(err=> showToast('Błąd: '+err.message,'danger'));
+                  .then(()=> showToast('Hasło zmienione!','success'))
+                  .catch(err=> showToast('Błąd: '+err.message,'danger'));
             }
         });
     }
 
+    // Wylogowanie
     const logoutBtn = document.getElementById('logoutBtnPanel');
     if(logoutBtn){
         logoutBtn.addEventListener('click', ()=>{
@@ -93,13 +115,13 @@ function renderUserPanel() {
         });
     }
 
-    // Avatar
+    // Zmiana awatara
     let selectedFile = null;
     if(changeAvatarBtn){
         changeAvatarBtn.addEventListener('click', ()=>{
             const input = document.createElement('input');
-            input.type='file';
-            input.accept='image/*';
+            input.type = 'file';
+            input.accept = 'image/*';
             input.click();
             input.onchange = ()=>{
                 selectedFile = input.files[0];
@@ -130,14 +152,15 @@ function renderUserPanel() {
                 const img = new Image();
                 img.onload = ()=>{
                     const canvas = document.createElement('canvas');
-                    canvas.width=64; canvas.height=64;
+                    canvas.width=64;
+                    canvas.height=64;
                     const ctx = canvas.getContext('2d');
                     const size = Math.min(img.width,img.height);
                     ctx.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,64,64);
                     const dataURL = canvas.toDataURL('image/png');
-                    userAvatar.src=dataURL;
+                    userAvatar.src = dataURL;
                     avatarPreviewContainer.classList.add('d-none');
-                    selectedFile=null;
+                    selectedFile = null;
                     db.collection('Users').doc(currentUser.uid).set({avatar:dataURL},{merge:true});
                     localStorage.setItem('userAvatar',dataURL);
                     showToast('Awatar został zmieniony!','success');
@@ -149,19 +172,23 @@ function renderUserPanel() {
     }
 }
 
-// ------------------- Auth State -------------------
+// ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user=>{
     if(!user) window.location.href="index.html";
-    else { currentUser=user; renderUserPanel(); loadTestCases(); }
+    else{
+        currentUser=user;
+        renderUserPanel();
+        loadTestCases();
+    }
 });
 
 // ------------------- CRUD -------------------
 function loadTestCases(){
     db.collection('Users').doc(currentUser.uid).collection('testCases')
-    .onSnapshot(snapshot=>{
-        testCases = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
-        renderTable();
-    });
+      .onSnapshot(snapshot=>{
+          testCases = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+          renderTable();
+      }, err=>console.error(err));
 }
 
 function saveTestCase(){
@@ -209,7 +236,10 @@ function deleteAllTestCases(){
     if(!confirm('Na pewno usunąć wszystkie testy?')) return;
     const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
     const batch = db.batch();
-    testCases.forEach(tc=>{ batch.delete(testCasesRef.doc(tc.id)); });
+    testCases.forEach(tc=>{
+        const docRef = testCasesRef.doc(tc.id);
+        batch.delete(docRef);
+    });
     batch.commit()
         .then(()=>showToast('Wszystkie testy usunięte!','success'))
         .catch(err=>showToast('Błąd usuwania: '+err.message,'danger'));
@@ -221,7 +251,7 @@ function resetForm(){
     document.getElementById('editIndex').value='';
 }
 
-// ------------------- Filters & Sorting -------------------
+// ------------------- Filtry i sortowanie -------------------
 function clearFilters(){
     statusFilter.value='all';
     priorityFilter.value='all';
@@ -247,11 +277,12 @@ function sortBy(key){
     renderTable();
 }
 
-// ------------------- Table & Stats -------------------
+// ------------------- Renderowanie tabeli i statystyk -------------------
 let statusChart;
 function renderTable(){
     let data = applyFilters([...testCases]);
     if(sortKey) data.sort((a,b)=>(a[sortKey]||'').localeCompare(b[sortKey]||'')*(sortAsc?1:-1));
+
     const tbody = document.querySelector('#testTable tbody');
     if(!tbody) return;
     tbody.innerHTML='';
@@ -271,6 +302,7 @@ function renderTable(){
         </td>`;
         tbody.appendChild(tr);
     });
+
     updateStats();
     updateCharts();
 }
@@ -282,7 +314,7 @@ function countStats(){
 }
 
 function updateStats(){
-    const {pass,fail,unknown}=countStats();
+    const {pass,fail,unknown} = countStats();
     const total = testCases.length || 1;
     document.getElementById('barPass').style.width=(pass/total*100)+'%';
     document.getElementById('barFail').style.width=(fail/total*100)+'%';
@@ -290,7 +322,7 @@ function updateStats(){
 }
 
 function updateCharts(){
-    const {pass,fail,unknown}=countStats();
+    const {pass,fail,unknown} = countStats();
     if(!statusChart && document.getElementById('statusChart')){
         statusChart = new Chart(document.getElementById('statusChart'),{
             type:'doughnut',
@@ -302,64 +334,55 @@ function updateCharts(){
     }
 }
 
-// ------------------- Import / Export -------------------
-function importFromCSV(){
-    const file = document.getElementById('csvFile').files[0];
-    if(!file){ showToast('Wybierz plik CSV!','warning'); return; }
+// ------------------- Import / Export CSV -------------------
+function importFromCSV(file){
     const reader = new FileReader();
     reader.onload = e=>{
-        const lines = e.target.result.split('\n').filter(l=>l.trim()!=='');
-        lines.shift();
-        const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
+        const lines = e.target.result.split(/\r?\n/);
         lines.forEach(line=>{
             const [name,desc,steps,expected,status,notes,priority] = line.split(',');
-            if(!name) return;
-            const data = { name:name.replace(/"/g,'').trim(), desc:desc.replace(/"/g,'').trim(), steps:steps.replace(/"/g,'').trim(), expected:expected.replace(/"/g,'').trim(), status:status.replace(/"/g,'').trim(), notes:notes.replace(/"/g,'').trim(), priority:priority.replace(/"/g,'').trim(), history:[`Import: ${new Date().toLocaleString()}`] };
-            testCasesRef.doc(data.name).set(data).catch(err=>console.error(err));
+            if(name) db.collection('Users').doc(currentUser.uid).collection('testCases').doc(name).set({name,desc,steps,expected,status,notes,priority});
         });
-        loadTestCases();
-        showToast('Import zakończony!','success');
+        showToast('CSV zaimportowane!','success');
     };
     reader.readAsText(file);
 }
 
+document.getElementById('importCSVBtn').addEventListener('click',()=>{
+    const fileInput = document.getElementById('csvFile');
+    if(fileInput.files.length===0){ showToast('Wybierz plik CSV','warning'); return; }
+    importFromCSV(fileInput.files[0]);
+});
+
 function exportToCSV(){
-    let csv="Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
-    testCases.forEach(tc=>{ csv+=`"${tc.name.replace(/"/g,'""')}","${tc.desc.replace(/"/g,'""')}","${tc.steps.replace(/"/g,'""')}","${tc.expected.replace(/"/g,'""')}","${tc.status}","${tc.notes}","${tc.priority}"\n`; });
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url;
-    a.download='testcases.csv';
-    a.click();
-    showToast('Eksport CSV zakończony!','success');
+    let csvContent = "data:text/csv;charset=utf-8,";
+    testCases.forEach(tc=>{
+        csvContent += [tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority].join(',')+"\n";
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'test_cases.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('CSV wyeksportowane!','success');
 }
 
 function exportToPDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(10);
-    doc.autoTable({
-        head:[['Nazwa','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']],
-        body:testCases.map(tc=>[tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority]),
-        styles:{cellPadding:2,fontSize:10}
-    });
-    doc.save('testcases.pdf');
-    showToast('Eksport PDF zakończony!','success');
+    const columns = ["Tytuł","Opis","Kroki","Oczekiwany","Status","Uwagi","Priorytet"];
+    const rows = testCases.map(tc=>[tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority]);
+    doc.autoTable({ head:[columns], body:rows });
+    doc.save('test_cases.pdf');
+    showToast('PDF wyeksportowane!','success');
 }
 
-// ------------------- Init -------------------
-document.addEventListener('DOMContentLoaded', ()=>{
-    if(testForm) testForm.addEventListener('submit', e=>{ e.preventDefault(); saveTestCase(); });
-    if(statusFilter && priorityFilter && searchQuery){
-        statusFilter.addEventListener('change', renderTable);
-        priorityFilter.addEventListener('change', renderTable);
-        searchQuery.addEventListener('input', renderTable);
-    }
-    const csvFileInput = document.getElementById('csvFile');
-    const importBtn = document.getElementById('importCSVBtn');
-    if(importBtn && csvFileInput){
-        importBtn.addEventListener('click', importFromCSV);
-    }
-});
+// ------------------- Obsługa formularza -------------------
+if(testForm){
+    testForm.addEventListener('submit', e=>{
+        e.preventDefault();
+        saveTestCase();
+    });
+}
