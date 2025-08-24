@@ -16,36 +16,59 @@ const searchQuery = document.getElementById("searchQuery");
 function renderUserPanel() {
     const userPanelEmail = document.getElementById('userEmail');
     const userAvatar = document.getElementById('userAvatar');
+    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
+
     if (!currentUser || !userPanelEmail || !userAvatar) return;
 
-    // Pobierz dane z localStorage
+    // Na starcie ukryj elementy
+    userAvatar.style.opacity = 0;
+    userPanelEmail.style.opacity = 0;
+
+    // Wczytaj dane z localStorage
     const savedEmail = localStorage.getItem('userEmail');
     const savedAvatar = localStorage.getItem('userAvatar');
 
     if (savedEmail) userPanelEmail.textContent = savedEmail;
     if (savedAvatar) userAvatar.src = savedAvatar;
 
-    const userDocRef = db.collection('Users').doc(currentUser.uid);
-
-    // Pobierz dane z Firestore i ustaw localStorage
-    userDocRef.get().then(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            if (data.avatar) {
-                userAvatar.src = data.avatar;
-                localStorage.setItem('userAvatar', data.avatar);
+    // Pobierz dane z Firestore i zaktualizuj localStorage
+    firebase.firestore().collection('Users').doc(currentUser.uid).get()
+        .then(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.avatar) {
+                    userAvatar.src = data.avatar;
+                    localStorage.setItem('userAvatar', data.avatar);
+                }
+                if (currentUser.email) {
+                    userPanelEmail.textContent = currentUser.email;
+                    localStorage.setItem('userEmail', currentUser.email);
+                }
+            } else {
+                // Jeśli dokument nie istnieje, ustaw domyślny avatar
+                userAvatar.src = 'img/default-avatar.png';
+                userPanelEmail.textContent = currentUser.email || '';
+                firebase.firestore().collection('Users').doc(currentUser.uid).set({
+                    avatar: 'img/default-avatar.png'
+                });
+                localStorage.setItem('userAvatar', 'img/default-avatar.png');
+                localStorage.setItem('userEmail', currentUser.email || '');
             }
-            if (currentUser.email) {
-                userPanelEmail.textContent = currentUser.email;
-                localStorage.setItem('userEmail', currentUser.email);
-            }
-        } else {
-            // Jeśli dokument nie istnieje, twórz z domyślnym awatarem
-            userDocRef.set({ avatar: 'img/default-avatar.png' });
+        })
+        .catch(err => {
+            console.error('Błąd pobierania awatara:', err);
             userAvatar.src = 'img/default-avatar.png';
-            userPanelEmail.textContent = currentUser.email || 'user@example.com';
-        }
-    }).catch(err => console.error('Błąd pobierania awatara:', err));
+            userPanelEmail.textContent = currentUser.email || '';
+        })
+        .finally(() => {
+            // Pokaż elementy dopiero po załadowaniu danych
+            userAvatar.style.opacity = 1;
+            userPanelEmail.style.opacity = 1;
+        });
 
     // Zmiana hasła
     const editBtn = document.getElementById('editProfileBtn');
@@ -72,15 +95,9 @@ function renderUserPanel() {
         });
     }
 
-    // Podgląd i zmiana awatara
-    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
-    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
+    // Zmiana awatara
     let selectedFile = null;
-
-    if (changeAvatarBtn && avatarPreviewContainer && avatarPreview && saveAvatarBtn && cancelAvatarBtn) {
+    if (changeAvatarBtn) {
         changeAvatarBtn.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -90,6 +107,7 @@ function renderUserPanel() {
             input.onchange = () => {
                 selectedFile = input.files[0];
                 if (!selectedFile) return;
+
                 const reader = new FileReader();
                 reader.onload = e => {
                     avatarPreview.src = e.target.result;
@@ -98,13 +116,17 @@ function renderUserPanel() {
                 reader.readAsDataURL(selectedFile);
             };
         });
+    }
 
+    if (cancelAvatarBtn) {
         cancelAvatarBtn.addEventListener('click', () => {
             avatarPreviewContainer.classList.add('d-none');
             avatarPreview.src = '';
             selectedFile = null;
         });
+    }
 
+    if (saveAvatarBtn) {
         saveAvatarBtn.addEventListener('click', () => {
             if (!selectedFile) return;
             const reader = new FileReader();
@@ -116,14 +138,18 @@ function renderUserPanel() {
                     canvas.height = 64;
                     const ctx = canvas.getContext('2d');
                     const size = Math.min(img.width, img.height);
-                    ctx.drawImage(img, (img.width - size)/2, (img.height - size)/2, size, size, 0, 0, 64, 64);
+                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 64, 64);
+
                     const dataURL = canvas.toDataURL('image/png');
                     userAvatar.src = dataURL;
                     avatarPreviewContainer.classList.add('d-none');
                     selectedFile = null;
 
-                    userDocRef.set({ avatar: dataURL }, { merge: true });
+                    firebase.firestore().collection('Users').doc(currentUser.uid).set({
+                        avatar: dataURL
+                    }, { merge: true });
                     localStorage.setItem('userAvatar', dataURL);
+
                     alert('Awatar został zmieniony!');
                 };
                 img.src = e.target.result;
@@ -132,6 +158,7 @@ function renderUserPanel() {
         });
     }
 }
+
 
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
