@@ -137,6 +137,30 @@ tr:hover .unknown-badge { box-shadow: 0 4px 10px rgba(158,158,158,0.4); }
     transition: transform 0.5s ease, opacity 0.5s ease;
 }
 
+/* ------------------- Toast ------------------- */
+#toastRoot {
+    position: fixed;
+    top: 1rem;
+    right: 1rem; /* po prawej stronie */
+    z-index: 1100;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* wszystkie toast'y przy prawej krawędzi */
+}
+
+#toastRoot .toast {
+    pointer-events: auto;
+    min-width: 250px;
+    max-width: 350px;
+    margin-top: 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateX(120%);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
 #toastRoot .toast.show {
     opacity: 1;
     transform: translateX(0);
@@ -166,6 +190,7 @@ tr:hover .unknown-badge { box-shadow: 0 4px 10px rgba(158,158,158,0.4); }
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
+
 
 
 
