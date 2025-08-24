@@ -61,9 +61,13 @@ function renderUserPanel() {
     const userPanel = document.getElementById('userPanel');
     if (!userPanel || !currentUser) return;
 
+    // Pobranie avatara z LocalStorage (lub domyślny)
+    const avatarData = localStorage.getItem(`avatar_${currentUser.uid}`);
+    const avatarUrl = avatarData || 'img/default-avatar.png';
+
     userPanel.innerHTML = `
       <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-        <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" alt="Avatar" />
+        <img id="userAvatar" src="${avatarUrl}" class="rounded-circle me-2" alt="Avatar" width="32" height="32" />
         ${currentUser.email}
       </a>
       <ul class="dropdown-menu dropdown-menu-end">
@@ -82,13 +86,6 @@ function renderUserPanel() {
         <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
       </ul>
     `;
-
-    // Pobranie awatara z Firestore jeśli istnieje
-    firebase.firestore().collection('Users').doc(currentUser.uid).get().then(doc => {
-        if (doc.exists && doc.data().avatar) {
-            document.getElementById('userAvatar').src = doc.data().avatar;
-        }
-    });
 
     // Zmiana hasła
     document.getElementById('editProfileBtn').addEventListener('click', () => {
@@ -122,7 +119,6 @@ function renderUserPanel() {
             selectedFile = input.files[0];
             if (!selectedFile) return;
 
-            // Wyświetlenie podglądu
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewImg.src = e.target.result;
@@ -132,57 +128,20 @@ function renderUserPanel() {
         };
     });
 
-    // Funkcja przycinania i skalowania do 64x64
-    function resizeImage(file, callback) {
+    // Zapis awatara w LocalStorage
+    document.getElementById('saveAvatarBtn').addEventListener('click', () => {
+        if (!selectedFile) return;
+
         const reader = new FileReader();
         reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const size = Math.min(img.width, img.height);
-                const canvas = document.createElement('canvas');
-                canvas.width = 64;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(
-                    img,
-                    (img.width - size) / 2,
-                    (img.height - size) / 2,
-                    size,
-                    size,
-                    0,
-                    0,
-                    64,
-                    64
-                );
-                canvas.toBlob(callback, 'image/jpeg', 0.9);
-            };
-            img.src = e.target.result;
+            const dataUrl = e.target.result;
+            localStorage.setItem(`avatar_${currentUser.uid}`, dataUrl);
+            document.getElementById('userAvatar').src = dataUrl;
+            previewContainer.classList.add('d-none');
+            selectedFile = null;
+            alert('Awatar został zmieniony!');
         };
-        reader.readAsDataURL(file);
-    }
-
-    // Zapis awatara
-    document.getElementById('saveAvatarBtn').addEventListener('click', async () => {
-        if (!selectedFile) return;
-        try {
-            resizeImage(selectedFile, async (blob) => {
-                const storageRef = firebase.storage().ref();
-                const avatarRef = storageRef.child(`avatars/${currentUser.uid}.jpg`);
-                await avatarRef.put(blob);
-                const avatarURL = await avatarRef.getDownloadURL();
-
-                await firebase.firestore().collection('Users').doc(currentUser.uid).update({
-                    avatar: avatarURL
-                });
-
-                document.getElementById('userAvatar').src = avatarURL;
-                previewContainer.classList.add('d-none');
-                alert('Awatar został zmieniony!');
-            });
-        } catch (err) {
-            console.error(err);
-            alert('Błąd przy zmianie awatara: ' + err.message);
-        }
+        reader.readAsDataURL(selectedFile);
     });
 
     // Anulowanie podglądu
