@@ -61,64 +61,53 @@ function loadTestCases() {
 }
 
 // ------------------- Panel użytkownika z awatarem -------------------
-let currentUser = null;
-
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        renderUserPanel();
-    } else {
-        // brak zalogowanego użytkownika
-        window.location.href = 'index.html';
-    }
-});
-
 function renderUserPanel() {
-    const userPanel = document.getElementById('userPanel');
-    if (!userPanel || !currentUser) return;
+    const userPanelEmail = document.getElementById('userEmail');
+    const userAvatar = document.getElementById('userAvatar');
+    if (!currentUser || !userPanelEmail || !userAvatar) return;
 
-    // Pobranie awatara z localStorage (lub ustawienie default)
-    let avatar = localStorage.getItem(`avatar_${currentUser.uid}`) || 'img/default-avatar.png';
+    // Pobranie danych użytkownika z Firestore
+    const userDocRef = firebase.firestore().collection('Users').doc(currentUser.uid);
 
-    userPanel.innerHTML = `
-      <div class="dropdown">
-        <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-          <img id="userAvatar" src="${avatar}" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
-          <span id="userEmail">${currentUser.email}</span>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
-          <li>
-            <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-            <div id="avatarPreviewContainer" class="p-2 d-none">
-              <p class="mb-1 small">Podgląd nowego awatara:</p>
-              <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-              <div class="mt-2 d-flex gap-2">
-                <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
-                <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
-              </div>
-            </div>
-          </li>
-          <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
-        </ul>
-      </div>
-    `;
-
-    const editBtn = document.getElementById('editProfileBtn');
-    editBtn.addEventListener('click', () => {
-        const newPassword = prompt('Podaj nowe hasło:');
-        if (newPassword) {
-            currentUser.updatePassword(newPassword)
-                .then(() => alert('Hasło zmienione!'))
-                .catch(err => alert('Błąd: ' + err.message));
+    userDocRef.get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            userAvatar.src = data.avatar || 'img/default-avatar.png';
+            userPanelEmail.textContent = currentUser.email || 'user@example.com';
+        } else {
+            // Jeśli dokument nie istnieje, tworzymy go z domyślnym awatarem
+            userDocRef.set({ avatar: 'img/default-avatar.png' });
+            userAvatar.src = 'img/default-avatar.png';
+            userPanelEmail.textContent = currentUser.email || 'user@example.com';
         }
+    }).catch(err => {
+        console.error('Błąd pobierania awatara:', err);
+        userAvatar.src = 'img/default-avatar.png';
+        userPanelEmail.textContent = currentUser.email || 'user@example.com';
     });
 
+    // Zmiana hasła
+    const editBtn = document.getElementById('editProfileBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            const newPassword = prompt('Podaj nowe hasło:');
+            if (newPassword) {
+                currentUser.updatePassword(newPassword)
+                    .then(() => alert('Hasło zmienione!'))
+                    .catch(err => alert('Błąd: ' + err.message));
+            }
+        });
+    }
+
+    // Wylogowanie
     const logoutBtn = document.getElementById('logoutBtnPanel');
-    logoutBtn.addEventListener('click', () => {
-        firebase.auth().signOut().then(() => window.location.href = 'index.html');
-    });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            firebase.auth().signOut().then(() => window.location.href = 'index.html');
+        });
+    }
 
+    // Podgląd i zmiana awatara (lokalnie w Base64)
     const changeAvatarBtn = document.getElementById('changeAvatarBtn');
     const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
     const avatarPreview = document.getElementById('avatarPreview');
@@ -126,65 +115,87 @@ function renderUserPanel() {
     const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
     let selectedFile = null;
 
-    changeAvatarBtn.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.click();
+    if (changeAvatarBtn && avatarPreviewContainer && avatarPreview && saveAvatarBtn && cancelAvatarBtn) {
+        changeAvatarBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.click();
 
-        input.onchange = () => {
-            selectedFile = input.files[0];
+            input.onchange = () => {
+                selectedFile = input.files[0];
+                if (!selectedFile) return;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    avatarPreview.src = e.target.result;
+                    avatarPreviewContainer.classList.remove('d-none');
+                };
+                reader.readAsDataURL(selectedFile);
+            };
+        });
+
+        cancelAvatarBtn.addEventListener('click', () => {
+            avatarPreviewContainer.classList.add('d-none');
+            avatarPreview.src = '';
+            selectedFile = null;
+        });
+
+        saveAvatarBtn.addEventListener('click', () => {
             if (!selectedFile) return;
 
             const reader = new FileReader();
             reader.onload = e => {
-                avatarPreview.src = e.target.result;
-                avatarPreviewContainer.classList.remove('d-none');
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(img.width, img.height);
+                    ctx.drawImage(
+                        img,
+                        (img.width - size) / 2,
+                        (img.height - size) / 2,
+                        size,
+                        size,
+                        0,
+                        0,
+                        64,
+                        64
+                    );
+
+                    const dataURL = canvas.toDataURL('image/png');
+
+                    // Zapis do Firestore
+                    userDocRef.update({ avatar: dataURL })
+                        .then(() => {
+                            userAvatar.src = dataURL;
+                            avatarPreviewContainer.classList.add('d-none');
+                            selectedFile = null;
+                            alert('Awatar został zmieniony!');
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Błąd przy zapisie awatara: ' + err.message);
+                        });
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(selectedFile);
-        };
-    });
-
-    cancelAvatarBtn.addEventListener('click', () => {
-        avatarPreviewContainer.classList.add('d-none');
-        avatarPreview.src = '';
-        selectedFile = null;
-    });
-
-    saveAvatarBtn.addEventListener('click', () => {
-        if (!selectedFile) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 64;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
-                const size = Math.min(img.width, img.height);
-                ctx.drawImage(
-                    img,
-                    (img.width - size) / 2,
-                    (img.height - size) / 2,
-                    size,
-                    size,
-                    0,
-                    0,
-                    64,
-                    64
-                );
-                const dataURL = canvas.toDataURL('image/png');
-                localStorage.setItem(`avatar_${currentUser.uid}`, dataURL);
-                document.getElementById('userAvatar').src = dataURL;
-                avatarPreviewContainer.classList.add('d-none');
-                selectedFile = null;
-                alert('Awatar został zmieniony!');
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(selectedFile);
-    });
+        });
+    }
 }
+
+// Wywołanie po zalogowaniu użytkownika
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        renderUserPanel();
+    } else {
+        window.location.href = 'index.html';
+    }
+});
 
 
 
