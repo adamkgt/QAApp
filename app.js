@@ -12,79 +12,40 @@ const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
-// ------------------- Funkcje użytkownika -------------------
-function renderUserPanel() {
-    const userPanel = document.getElementById('userPanel');
-    if (!userPanel || !currentUser) return;
-
-    userPanel.innerHTML = `
-        <span class="fw-bold">${currentUser.email}</span>
-        <button id="editProfileBtn" class="btn btn-sm btn-outline-secondary">Zmień hasło</button>
-        <button id="logoutBtnPanel" class="btn btn-sm btn-outline-danger">Wyloguj</button>
-    `;
-
-    document.getElementById('editProfileBtn').addEventListener('click', () => {
-        const newPassword = prompt('Podaj nowe hasło:');
-        if (newPassword) {
-            currentUser.updatePassword(newPassword)
-                .then(() => alert('Hasło zmienione!'))
-                .catch(err => alert('Błąd: ' + err.message));
-        }
-    });
-
-    document.getElementById('logoutBtnPanel').addEventListener('click', () => {
-        auth.signOut().then(() => window.location.href = 'index.html');
-    });
-}
-
-// ------------------- Ochrona strony i ładowanie danych -------------------
-auth.onAuthStateChanged(user => {
-    if (!user) {
-        window.location.href = "index.html"; // przekierowanie do logowania
-    } else {
-        currentUser = user;
-        // Wywołanie panelu użytkownika
-        renderUserPanel();
-
-        // Załaduj przypadki testowe użytkownika
-        loadTestCases();
-    }
-});
-
-
-function loadTestCases() {
-    db.collection('Users').doc(currentUser.uid).collection('testCases')
-      .onSnapshot(snapshot => {
-          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          renderTable();
-      }, err => console.error(err));
-}
-
-// ------------------- Panel użytkownika z awatarem -------------------
+// ------------------- Funkcja użytkownika -------------------
 function renderUserPanel() {
     const userPanelEmail = document.getElementById('userEmail');
     const userAvatar = document.getElementById('userAvatar');
     if (!currentUser || !userPanelEmail || !userAvatar) return;
 
-    // Pobranie danych użytkownika z Firestore
-    const userDocRef = firebase.firestore().collection('Users').doc(currentUser.uid);
+    // Pobierz dane z localStorage
+    const savedEmail = localStorage.getItem('userEmail');
+    const savedAvatar = localStorage.getItem('userAvatar');
 
+    if (savedEmail) userPanelEmail.textContent = savedEmail;
+    if (savedAvatar) userAvatar.src = savedAvatar;
+
+    const userDocRef = db.collection('Users').doc(currentUser.uid);
+
+    // Pobierz dane z Firestore i ustaw localStorage
     userDocRef.get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
-            userAvatar.src = data.avatar || 'img/default-avatar.png';
-            userPanelEmail.textContent = currentUser.email || 'user@example.com';
+            if (data.avatar) {
+                userAvatar.src = data.avatar;
+                localStorage.setItem('userAvatar', data.avatar);
+            }
+            if (currentUser.email) {
+                userPanelEmail.textContent = currentUser.email;
+                localStorage.setItem('userEmail', currentUser.email);
+            }
         } else {
-            // Jeśli dokument nie istnieje, tworzymy go z domyślnym awatarem
+            // Jeśli dokument nie istnieje, twórz z domyślnym awatarem
             userDocRef.set({ avatar: 'img/default-avatar.png' });
             userAvatar.src = 'img/default-avatar.png';
             userPanelEmail.textContent = currentUser.email || 'user@example.com';
         }
-    }).catch(err => {
-        console.error('Błąd pobierania awatara:', err);
-        userAvatar.src = 'img/default-avatar.png';
-        userPanelEmail.textContent = currentUser.email || 'user@example.com';
-    });
+    }).catch(err => console.error('Błąd pobierania awatara:', err));
 
     // Zmiana hasła
     const editBtn = document.getElementById('editProfileBtn');
@@ -103,130 +64,94 @@ function renderUserPanel() {
     const logoutBtn = document.getElementById('logoutBtnPanel');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            firebase.auth().signOut().then(() => window.location.href = 'index.html');
+            auth.signOut().then(() => {
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userAvatar');
+                window.location.href = 'index.html';
+            });
         });
     }
 
-    // Podgląd i zmiana awatara (lokalnie w Base64)
-function renderUserPanel() {
-  const userPanelEmail = document.getElementById('userEmail');
-  const userAvatar = document.getElementById('userAvatar');
-  if (!currentUser || !userPanelEmail || !userAvatar) return;
+    // Podgląd i zmiana awatara
+    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+    const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+    const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
+    let selectedFile = null;
 
-  // Pobierz dane z localStorage jeśli są
-  const savedEmail = localStorage.getItem('userEmail');
-  const savedAvatar = localStorage.getItem('userAvatar');
+    if (changeAvatarBtn && avatarPreviewContainer && avatarPreview && saveAvatarBtn && cancelAvatarBtn) {
+        changeAvatarBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.click();
 
-  if (savedEmail) userPanelEmail.textContent = savedEmail;
-  if (savedAvatar) userAvatar.src = savedAvatar;
+            input.onchange = () => {
+                selectedFile = input.files[0];
+                if (!selectedFile) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    avatarPreview.src = e.target.result;
+                    avatarPreviewContainer.classList.remove('d-none');
+                };
+                reader.readAsDataURL(selectedFile);
+            };
+        });
 
-  // Pobranie awatara z Firestore i zapis do localStorage
-  firebase.firestore().collection('Users').doc(currentUser.uid).get()
-    .then(doc => {
-      if (doc.exists) {
-        const data = doc.data();
-        if (data.avatar) {
-          userAvatar.src = data.avatar;
-          localStorage.setItem('userAvatar', data.avatar);
-        }
-        if (currentUser.email) {
-          userPanelEmail.textContent = currentUser.email;
-          localStorage.setItem('userEmail', currentUser.email);
-        }
-      }
-    }).catch(err => console.error('Błąd pobierania awatara:', err));
+        cancelAvatarBtn.addEventListener('click', () => {
+            avatarPreviewContainer.classList.add('d-none');
+            avatarPreview.src = '';
+            selectedFile = null;
+        });
 
-  // Zmiana hasła
-  document.getElementById('editProfileBtn').addEventListener('click', () => {
-    const newPassword = prompt('Podaj nowe hasło:');
-    if (newPassword) {
-      currentUser.updatePassword(newPassword)
-        .then(() => alert('Hasło zmienione!'))
-        .catch(err => alert('Błąd: ' + err.message));
+        saveAvatarBtn.addEventListener('click', () => {
+            if (!selectedFile) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(img.width, img.height);
+                    ctx.drawImage(img, (img.width - size)/2, (img.height - size)/2, size, size, 0, 0, 64, 64);
+                    const dataURL = canvas.toDataURL('image/png');
+                    userAvatar.src = dataURL;
+                    avatarPreviewContainer.classList.add('d-none');
+                    selectedFile = null;
+
+                    userDocRef.set({ avatar: dataURL }, { merge: true });
+                    localStorage.setItem('userAvatar', dataURL);
+                    alert('Awatar został zmieniony!');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(selectedFile);
+        });
     }
-  });
-
-  // Wylogowanie
-  document.getElementById('logoutBtnPanel').addEventListener('click', () => {
-    auth.signOut().then(() => {
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userAvatar');
-      window.location.href = 'index.html';
-    });
-  });
-
-  // Podgląd i zmiana awatara (w LocalStorage)
-  const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-  const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
-  const avatarPreview = document.getElementById('avatarPreview');
-  const saveAvatarBtn = document.getElementById('saveAvatarBtn');
-  const cancelAvatarBtn = document.getElementById('cancelAvatarBtn');
-  let selectedFile = null;
-
-  changeAvatarBtn.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.click();
-
-    input.onchange = () => {
-      selectedFile = input.files[0];
-      if (!selectedFile) return;
-
-      const reader = new FileReader();
-      reader.onload = e => {
-        avatarPreview.src = e.target.result;
-        avatarPreviewContainer.classList.remove('d-none');
-      };
-      reader.readAsDataURL(selectedFile);
-    };
-  });
-
-  cancelAvatarBtn.addEventListener('click', () => {
-    avatarPreviewContainer.classList.add('d-none');
-    avatarPreview.src = '';
-    selectedFile = null;
-  });
-
-  saveAvatarBtn.addEventListener('click', () => {
-    if (!selectedFile) return;
-
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        const size = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 64, 64);
-
-        const dataURL = canvas.toDataURL('image/png');
-        userAvatar.src = dataURL;
-        avatarPreviewContainer.classList.add('d-none');
-        selectedFile = null;
-
-        // Zapis do Firestore i LocalStorage
-        firebase.firestore().collection('Users').doc(currentUser.uid).set({
-          avatar: dataURL
-        }, { merge: true });
-        localStorage.setItem('userAvatar', dataURL);
-
-        alert('Awatar został zmieniony!');
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(selectedFile);
-  });
 }
 
-
-
-
-
+// ------------------- Ochrona strony i ładowanie danych -------------------
+auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = "index.html";
+    else {
+        currentUser = user;
+        renderUserPanel();
+        loadTestCases();
+    }
+});
 
 // ------------------- CRUD -------------------
+function loadTestCases() {
+    db.collection('Users').doc(currentUser.uid).collection('testCases')
+      .onSnapshot(snapshot => {
+          testCases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderTable();
+      }, err => console.error(err));
+}
+
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
     const data = {
@@ -241,17 +166,8 @@ function saveTestCase() {
     };
 
     const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-
-    if (index === '') {
-        // Tworzenie dokumentu o nazwie tytułu testu
-        testCasesRef.doc(data.name).set(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
-    } else {
-        testCasesRef.doc(index).update(data)
-            .then(() => resetForm())
-            .catch(err => alert('Błąd zapisu: ' + err.message));
-    }
+    if (index === '') testCasesRef.doc(data.name).set(data).then(() => resetForm()).catch(err => alert('Błąd zapisu: ' + err.message));
+    else testCasesRef.doc(index).update(data).then(() => resetForm()).catch(err => alert('Błąd zapisu: ' + err.message));
 }
 
 function editTestCase(id) {
@@ -310,25 +226,15 @@ function sortBy(key) {
     renderTable();
 }
 
-// ------------------- Renderowanie tabeli, statystyki, wykresy -------------------
+// ------------------- Renderowanie tabeli i statystyk -------------------
 let statusChart;
-
 function renderTable() {
     let data = applyFilters([...testCases]);
-
-    if (sortKey) {
-        data.sort((a, b) => {
-            const va = a[sortKey] || '', vb = b[sortKey] || '';
-            if (va < vb) return sortAsc ? -1 : 1;
-            if (va > vb) return sortAsc ? 1 : -1;
-            return 0;
-        });
-    }
+    if (sortKey) data.sort((a,b) => (a[sortKey]||'').localeCompare(b[sortKey]||'') * (sortAsc ? 1 : -1));
 
     const tbody = document.querySelector('#testTable tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-
     data.forEach(tc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -352,33 +258,27 @@ function renderTable() {
 
 function countStats() {
     let pass = 0, fail = 0, unknown = 0;
-    testCases.forEach(tc => {
-        if (tc.status === 'Pass') pass++;
-        else if (tc.status === 'Fail') fail++;
-        else unknown++;
-    });
+    testCases.forEach(tc => { if(tc.status==='Pass') pass++; else if(tc.status==='Fail') fail++; else unknown++; });
     return { pass, fail, unknown };
 }
 
 function updateStats() {
     const { pass, fail, unknown } = countStats();
     const total = testCases.length || 1;
-
-    document.getElementById('barPass').style.width = (pass / total * 100) + '%';
-    document.getElementById('barFail').style.width = (fail / total * 100) + '%';
-    document.getElementById('barUnknown').style.width = (unknown / total * 100) + '%';
+    document.getElementById('barPass').style.width = (pass/total*100)+'%';
+    document.getElementById('barFail').style.width = (fail/total*100)+'%';
+    document.getElementById('barUnknown').style.width = (unknown/total*100)+'%';
 }
 
 function updateCharts() {
     const { pass, fail, unknown } = countStats();
-
     if (!statusChart && document.getElementById('statusChart')) {
         statusChart = new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
-            data: { labels: ['Pass', 'Fail', 'Brak'], datasets: [{ data: [pass, fail, unknown], backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'] }] }
+            data: { labels: ['Pass','Fail','Brak'], datasets:[{data:[pass,fail,unknown], backgroundColor:['#4caf50','#f44336','#9e9e9e']}]}
         });
     } else if (statusChart) {
-        statusChart.data.datasets[0].data = [pass, fail, unknown];
+        statusChart.data.datasets[0].data = [pass,fail,unknown];
         statusChart.update();
     }
 }
@@ -386,106 +286,64 @@ function updateCharts() {
 // ------------------- Import / Export -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
-    if (!file) return;
-
+    if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n').filter(l => l.trim() !== '');
-        lines.shift(); // pomija nagłówek
-
-        lines.forEach(line => {
+    reader.onload = function(e){
+        const lines = e.target.result.split('\n').filter(l=>l.trim()!=='');
+        lines.shift();
+        lines.forEach(line=>{
             const [name, desc, steps, expected, status, notes, priority] = line.split(',');
-            if (!name) return;
-
-            const data = {
-                name: name.replace(/"/g,'').trim(),
-                desc: desc.replace(/"/g,'').trim(),
-                steps: steps.replace(/"/g,'').trim(),
-                expected: expected.replace(/"/g,'').trim(),
-                status: status.replace(/"/g,'').trim(),
-                notes: notes.replace(/"/g,'').trim(),
-                priority: priority.replace(/"/g,'').trim(),
-                history: [`Import: ${new Date().toLocaleString()}`]
-            };
-
-            db.collection('Users')
-              .doc(currentUser.uid)
-              .collection('testCases')
-              .doc(data.name)
-              .set(data)
-              .catch(err => console.error('Błąd importu:', err));
+            if(!name) return;
+            const data = {name:name.replace(/"/g,'').trim(), desc:desc.replace(/"/g,'').trim(), steps:steps.replace(/"/g,'').trim(), expected:expected.replace(/"/g,'').trim(), status:status.replace(/"/g,'').trim(), notes:notes.replace(/"/g,'').trim(), priority:priority.replace(/"/g,'').trim(), history:[`Import: ${new Date().toLocaleString()}`]};
+            db.collection('Users').doc(currentUser.uid).collection('testCases').doc(data.name).set(data).catch(err=>console.error(err));
         });
-
         loadTestCases();
         alert('Import zakończony!');
     };
-
     reader.readAsText(file);
 }
 
-
-
-
 function exportToCSV() {
-    let csv = "Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
-    testCases.forEach(tc => {
-        csv += `"${tc.name.replace(/"/g,'""')}","${tc.desc.replace(/"/g,'""')}","${tc.steps.replace(/"/g,'""')}","${tc.expected.replace(/"/g,'""')}","${tc.status}","${tc.notes}","${tc.priority}"\n`;
+    let csv="Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
+    testCases.forEach(tc=>{
+        csv+=`"${tc.name.replace(/"/g,'""')}","${tc.desc.replace(/"/g,'""')}","${tc.steps.replace(/"/g,'""')}","${tc.expected.replace(/"/g,'""')}","${tc.status}","${tc.notes}","${tc.priority}"\n`;
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'testcases.csv';
+    a.href=url;
+    a.download='testcases.csv';
     a.click();
 }
 
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica","normal");
     doc.setFontSize(10);
     doc.autoTable({
-        head: [['Nazwa', 'Opis', 'Kroki', 'Oczekiwany', 'Status', 'Uwagi', 'Priorytet']],
-        body: testCases.map(tc => [
-            tc.name, tc.desc, tc.steps, tc.expected, tc.status, tc.notes, tc.priority
-        ]),
-        styles: { cellPadding: 2, fontSize: 10 }
+        head:[['Nazwa','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']],
+        body:testCases.map(tc=>[tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority]),
+        styles:{cellPadding:2,fontSize:10}
     });
     doc.save('testcases.pdf');
 }
 
 // ------------------- Init -------------------
-document.addEventListener('DOMContentLoaded', () => {
-    // Formularz zapisu testów
-    if (testForm) {
-        testForm.addEventListener('submit', e => {
-            e.preventDefault();
-            saveTestCase();
-        });
-    }
-
-    // Filtry
-    if (statusFilter && priorityFilter && searchQuery) {
+document.addEventListener('DOMContentLoaded', ()=>{
+    if(testForm) testForm.addEventListener('submit', e=>{e.preventDefault(); saveTestCase();});
+    if(statusFilter && priorityFilter && searchQuery){
         statusFilter.addEventListener('change', renderTable);
         priorityFilter.addEventListener('change', renderTable);
         searchQuery.addEventListener('input', renderTable);
     }
 
-    // Import CSV
-  const csvFileInput = document.getElementById('csvFile');
+    const csvFileInput = document.getElementById('csvFile');
     const importBtn = document.getElementById('importCSVBtn');
-
-    if (importBtn && csvFileInput) {
-        importBtn.addEventListener('click', () => {
-            // Sprawdzenie, czy plik został wybrany
-            if (!csvFileInput.files.length) {
-                alert('Wybierz plik CSV!');
-                return;
-            }
-
+    if(importBtn && csvFileInput){
+        importBtn.addEventListener('click', ()=>{
+            if(!csvFileInput.files.length){ alert('Wybierz plik CSV!'); return; }
             importFromCSV();
         });
     }
 });
-
