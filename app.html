@@ -22,61 +22,43 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-
-  <style>
-    body {
-      padding-top: 70px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 15px;
-    }
-    #userAvatar {
-      object-fit: cover;
-    }
-  </style>
 </head>
 <body class="bg-light">
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark bg-dark px-3">
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <i class="bi bi-shield-lock me-2"></i>
+      QA Test Management
+    </a>
 
-  <!-- 🔹 Navbar z panelem użytkownika -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top px-3">
-    <a class="navbar-brand fw-bold" href="#">QA Test Management</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUserPanel" aria-controls="navbarUserPanel" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navbarUserPanel">
-      <ul class="navbar-nav align-items-center">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" alt="Avatar" width="32" height="32">
-            <span id="userEmail" class="text-white">user@example.com</span>
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
-            <li>
-              <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-              <div id="avatarPreviewContainer" class="p-2 d-none">
-                <p class="mb-1 small">Podgląd nowego awatara:</p>
-                <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-                <div class="mt-2 d-flex gap-2">
-                  <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
-                  <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
-                </div>
-              </div>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
-          </ul>
+    <div class="dropdown ms-auto" id="userPanel">
+      <!-- renderUserPanel() wstawi awatar i email -->
+      <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
+        <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
+        <span id="userEmail">user@example.com</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+        <li>
+          <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
+          <div id="avatarPreviewContainer" class="p-2 d-none">
+            <p class="mb-1 small">Podgląd nowego awatara:</p>
+            <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
+            <div class="mt-2 d-flex gap-2">
+              <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
+              <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
+            </div>
+          </div>
         </li>
+        <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- 🔹 Główna zawartość -->
-  <div class="container">
+  <!-- Główny kontener -->
+  <div class="container py-4">
 
-    <!-- 🔹 Formularz testów -->
+    <!-- Formularz testów -->
     <form id="testForm" class="mb-4">
       <input type="hidden" id="editIndex" />
       <div class="row g-3">
@@ -125,41 +107,38 @@
       </div>
     </form>
 
-    
-    <!-- 🔹 Filtry -->
-    <section class="mb-4 bg-white p-4 rounded shadow-sm">
-      <div class="row g-2">
-        <div class="col-md-3">
-          <label for="statusFilter" class="form-label mb-0">Filtr statusu:</label>
-          <select id="statusFilter" class="form-select">
-            <option value="all">Wszystkie</option>
-            <option value="Pass">Pass</option>
-            <option value="Fail">Fail</option>
-            <option value="unknown">Brak statusu</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label for="priorityFilter" class="form-label mb-0">Filtr priorytetu:</label>
-          <select id="priorityFilter" class="form-select">
-            <option value="all">Wszystkie</option>
-            <option value="Niski">Niski</option>
-            <option value="Średni">Średni</option>
-            <option value="Wysoki">Wysoki</option>
-            <option value="Krytyczny">Krytyczny</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label for="searchQuery" class="form-label mb-0">Szukaj:</label>
-          <input id="searchQuery" class="form-control" placeholder="np. Logowanie" />
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <button class="btn btn-outline-secondary w-100" onclick="clearFilters()"><i class="bi bi-funnel"></i> Wyczyść filtry</button>
-        </div>
+    <!-- Filtry -->
+    <div class="row g-2 mb-3">
+      <div class="col-md-3">
+        <label for="statusFilter" class="form-label mb-0">Filtr statusu:</label>
+        <select id="statusFilter" class="form-select" onchange="renderTable()">
+          <option value="all">Wszystkie</option>
+          <option value="Pass">Pass</option>
+          <option value="Fail">Fail</option>
+          <option value="unknown">Brak statusu</option>
+        </select>
       </div>
-    </section>
+      <div class="col-md-3">
+        <label for="priorityFilter" class="form-label mb-0">Filtr priorytetu:</label>
+        <select id="priorityFilter" class="form-select" onchange="renderTable()">
+          <option value="all">Wszystkie</option>
+          <option value="Niski">Niski</option>
+          <option value="Średni">Średni</option>
+          <option value="Wysoki">Wysoki</option>
+          <option value="Krytyczny">Krytyczny</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="searchQuery" class="form-label mb-0">Szukaj:</label>
+        <input id="searchQuery" class="form-control" placeholder="np. Logowanie" oninput="renderTable()" />
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-outline-secondary w-100" onclick="clearFilters()"><i class="bi bi-funnel"></i> Wyczyść filtry</button>
+      </div>
+    </div>
 
-    <!-- 🔹 Tabela -->
-    <section class="mb-4 bg-white p-3 rounded shadow-sm table-responsive">
+    <!-- Tabela testów -->
+    <div class="table-responsive mb-4">
       <table class="table table-striped table-hover align-middle" id="testTable">
         <thead>
           <tr>
@@ -175,55 +154,46 @@
         </thead>
         <tbody></tbody>
       </table>
-    </section>
+    </div>
 
-    <!-- 🔹 Usuń wszystkie -->
+    <!-- Przycisk usuń wszystkie -->
     <div class="mb-4 text-end">
       <button class="btn btn-danger" onclick="deleteAllTestCases()"><i class="bi bi-trash"></i> Usuń wszystkie</button>
     </div>
 
-    <!-- 🔹 Statystyki -->
-    <section class="mb-4 bg-white p-4 rounded shadow-sm">
-      <h4>Statystyki</h4>
-      <div class="progress mb-2">
-        <div id="barPass" class="progress-bar bg-success" style="width: 0%;">Pass</div>
-        <div id="barFail" class="progress-bar bg-danger" style="width: 0%;">Fail</div>
-        <div id="barUnknown" class="progress-bar bg-secondary" style="width: 0%;">Brak statusu</div>
-      </div>
-      <p id="statsSummary" class="fw-bold text-center"></p>
-    </section>
+    <!-- Statystyki -->
+    <h4>Statystyki</h4>
+    <div class="progress mb-2">
+      <div id="barPass" class="progress-bar bg-success" style="width: 0%;">Pass</div>
+      <div id="barFail" class="progress-bar bg-danger" style="width: 0%;">Fail</div>
+      <div id="barUnknown" class="progress-bar bg-secondary" style="width: 0%;">Brak statusu</div>
+    </div>
+    <p id="statsSummary" class="fw-bold text-center"></p>
 
-    <!-- 🔹 Wykresy -->
-    <section class="mb-4 bg-white p-4 rounded shadow-sm">
-      <h4>Wizualizacja</h4>
-      <div class="row">
-        <div class="col-md-6 mb-3"><canvas id="statusChart" width="400" height="200"></canvas></div>
-        <div class="col-md-6 mb-3"><canvas id="trendChart" width="400" height="200"></canvas></div>
-      </div>
-    </section>
+    <!-- Wykresy -->
+    <h4>Wizualizacja</h4>
+    <div class="row mb-4">
+      <div class="col-md-6"><canvas id="statusChart" width="400" height="200"></canvas></div>
+      <div class="col-md-6"><canvas id="trendChart" width="400" height="200"></canvas></div>
+    </div>
 
-    <!-- 🔹 Import / Eksport -->
-    <section class="mb-4 bg-white p-4 rounded shadow-sm">
-      <h4>Import / Eksport</h4>
-      <div class="row g-2">
-        <div class="col-md-6">
-          <input type="file" id="csvFile" class="form-control" accept=".csv" />
-        </div>
-        <div class="col-md-6 d-flex gap-2">
-          <button id="importCSVBtn" class="btn btn-secondary">
-            <i class="bi bi-file-earmark-arrow-up"></i> Importuj CSV
-          </button>
-          <button onclick="exportToCSV()" class="btn btn-secondary">
-            <i class="bi bi-file-earmark-arrow-down"></i> Eksportuj CSV
-          </button>
-          <button onclick="exportToPDF()" class="btn btn-danger">
-            <i class="bi bi-file-earmark-pdf"></i> Eksportuj PDF
-          </button>
-        </div>
+    <!-- Import / Eksport -->
+    <h4 class="mt-4">Import / Eksport</h4>
+    <div class="row g-2 mb-5">
+      <div class="col-md-6"><input type="file" id="csvFile" class="form-control" accept=".csv" /></div>
+      <div class="col-md-6 d-flex gap-2">
+        <button id="importCSVBtn" class="btn btn-secondary">
+          <i class="bi bi-file-earmark-arrow-up"></i> Importuj CSV
+        </button>
+        <button onclick="exportToCSV()" class="btn btn-secondary">
+          <i class="bi bi-file-earmark-arrow-down"></i> Eksportuj CSV
+        </button>
+        <button onclick="exportToPDF()" class="btn btn-danger">
+          <i class="bi bi-file-earmark-pdf"></i> Eksportuj PDF
+        </button>
       </div>
-    </section>
+    </div>
 
   </div>
 </body>
 </html>
-
