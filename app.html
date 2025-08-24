@@ -19,9 +19,6 @@
 
   <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-light">
 
@@ -31,13 +28,12 @@
       <i class="bi bi-shield-lock me-2"></i>
       QA Test Management
     </a>
-    <div class="dropdown ms-auto" id="userPanel">
-      <!-- JS dynamicznie wstawi avatar i email -->
-    </div>
+
+    <div id="userPanel" class="ms-auto"></div>
   </nav>
 
   <!-- Główny kontener -->
-  <div class="container py-4">
+  <div class="container py-4" id="mainContainer">
 
     <!-- Formularz testów -->
     <form id="testForm" class="mb-4">
@@ -178,3 +174,4 @@
   </div>
 </body>
 </html>
+
