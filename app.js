@@ -4,7 +4,6 @@ const db = firebase.firestore();
 let currentUser = null;
 let testCases = [];
 
-// ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
@@ -24,24 +23,24 @@ function showToast(message, type = 'success', duration = 3000) {
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-
     toastRoot.appendChild(toast);
 
-    const closeBtn = toast.querySelector('.btn-close');
-    closeBtn.addEventListener('click', () => hideToast(toast));
+    // przycisk zamykania
+    toast.querySelector('.btn-close').addEventListener('click', () => hideToast(toast));
 
-    // Wyzwalamy animację wjazdu
+    // animacja wjazdu
     requestAnimationFrame(() => { toast.classList.add('show'); });
 
-    // Wyjazd po czasie
-    setTimeout(() => { hideToast(toast); }, duration);
+    // po duration toast zaczyna wyjeżdżać
+    setTimeout(() => hideToast(toast), duration);
 
-    function hideToast(t) {
-        t.classList.remove('show');
-        t.classList.add('hide');
-        t.addEventListener('transitionend', () => t.remove(), { once: true });
+    function hideToast(toastEl) {
+        toastEl.classList.remove('show');
+        toastEl.classList.add('hide');
+        toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
     }
 }
+
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
