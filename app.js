@@ -300,13 +300,11 @@ function updateStats() {
 }
 
 // ------------------- Import / Export CSV -------------------
+// Funkcja czyszczenia pola pliku
 function clearCSVFile() {
-    const oldInput = document.getElementById('csvFile');
-    const newInput = oldInput.cloneNode(true); // kopiujemy atrybuty, ale bez pliku
-    oldInput.parentNode.replaceChild(newInput, oldInput);
-
-    // Ponownie podpinamy obsługę przycisku importu
-    document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
+  const oldInput = document.getElementById('csvFile');
+  const newInput = oldInput.cloneNode(true); // nowy input bez pliku
+  oldInput.parentNode.replaceChild(newInput, oldInput);
 }
 
 function importFromCSV() {
@@ -359,8 +357,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('statusFilter')?.addEventListener('change', renderTable);
     document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
-    document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
-    document.getElementById('clearCSVFile')?.addEventListener('click', clearCSVFile);
+    document.getElementById('importCSVBtn').addEventListener('click', importFromCSV);
+    document.getElementById('clearCSVFile').addEventListener('click', clearCSVFile);
     
 
 
