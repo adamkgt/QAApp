@@ -8,17 +8,24 @@ let sortAsc = true;
 
 // ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
+    // Root dla toastów
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
-        toastRoot.className = 'position-fixed top-0 end-0 p-3';
+        toastRoot.style.position = 'fixed';
+        toastRoot.style.top = '0';
+        toastRoot.style.right = '0';
+        toastRoot.style.padding = '1rem';
         toastRoot.style.zIndex = 1100;
+        toastRoot.style.pointerEvents = 'none'; // nie blokuje tła
         document.body.appendChild(toastRoot);
     }
 
+    // Tworzymy toast
     const toast = document.createElement('div');
     toast.className = `toast toast-slide toast-${type}`;
+    toast.style.pointerEvents = 'auto';
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
@@ -33,16 +40,21 @@ function showToast(message, type = 'success', duration = 3000) {
     const closeBtn = toast.querySelector('.btn-close');
     closeBtn.addEventListener('click', () => hideToast(toast));
 
-    requestAnimationFrame(() => { toast.classList.add('show'); });
+    // Wyzwalamy animację wjazdu
+    requestAnimationFrame(() => {
+        toast.classList.add('show'); // slide in
+    });
 
-    setTimeout(() => { hideToast(toast); }, duration);
+    // Automatyczne wyjazd po czasie
+    setTimeout(() => hideToast(toast), duration);
 
     function hideToast(toastEl) {
         toastEl.classList.remove('show');
-        toastEl.classList.add('hide');
+        toastEl.classList.add('hide'); // slide out
         toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
     }
 }
+
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
