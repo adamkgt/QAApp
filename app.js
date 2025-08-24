@@ -4,7 +4,9 @@ const db = firebase.firestore();
 let currentUser = null;
 let testCases = [];
 
+// ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
+    // Tworzymy root jeśli nie istnieje
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
@@ -14,9 +16,6 @@ function showToast(message, type = 'success', duration = 3000) {
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
@@ -25,19 +24,19 @@ function showToast(message, type = 'success', duration = 3000) {
     `;
     toastRoot.appendChild(toast);
 
-    // przycisk zamykania
+    // Zamknięcie po kliknięciu
     toast.querySelector('.btn-close').addEventListener('click', () => hideToast(toast));
 
-    // animacja wjazdu
-    requestAnimationFrame(() => { toast.classList.add('show'); });
+    // Wymuszamy wjazd
+    requestAnimationFrame(() => toast.classList.add('show'));
 
-    // po duration toast zaczyna wyjeżdżać
+    // Automatyczne ukrycie
     setTimeout(() => hideToast(toast), duration);
 
-    function hideToast(toastEl) {
-        toastEl.classList.remove('show');
-        toastEl.classList.add('hide');
-        toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
+    function hideToast(t) {
+        t.classList.remove('show');
+        t.classList.add('hide');
+        t.addEventListener('transitionend', () => t.remove(), { once: true });
     }
 }
 
