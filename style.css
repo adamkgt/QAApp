@@ -230,3 +230,43 @@ tr:hover .unknown-badge {
   opacity: 1;
 }
 
+/* Animacja wjazdu toastu z prawej */
+@keyframes slideInRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Animacja wyjazdu toastu w prawo */
+@keyframes slideOutRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Klasa do wywołania animacji wjazdu */
+.toast-slide-in {
+  animation: slideInRight 0.5s forwards;
+}
+
+/* Klasa do wywołania animacji wyjazdu */
+.toast-slide-out {
+  animation: slideOutRight 0.5s forwards;
+}
+
+/* Dodatkowe ustawienia toastów */
+#appToast {
+  min-width: 250px;
+  margin-top: 10px;
+}
+
