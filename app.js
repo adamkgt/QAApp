@@ -3,19 +3,29 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let testCases = [];
+let sortKey = '';
+let sortAsc = true;
 
 // ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
-    // Tworzymy root jeśli nie istnieje
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
+        toastRoot.style.position = 'fixed';
+        toastRoot.style.top = '1rem';
+        toastRoot.style.right = '1rem';
+        toastRoot.style.zIndex = 1100;
+        toastRoot.style.pointerEvents = 'none';
         document.body.appendChild(toastRoot);
     }
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(120%)';
+    toast.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+    toast.style.pointerEvents = 'auto';
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
@@ -24,22 +34,24 @@ function showToast(message, type = 'success', duration = 3000) {
     `;
     toastRoot.appendChild(toast);
 
+    // Wywołanie animacji wjazdu
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 50);
+
     // Zamknięcie po kliknięciu
     toast.querySelector('.btn-close').addEventListener('click', () => hideToast(toast));
 
-    // Wymuszamy wjazd
-    requestAnimationFrame(() => toast.classList.add('show'));
-
-    // Automatyczne ukrycie
+    // Automatyczne zamknięcie
     setTimeout(() => hideToast(toast), duration);
 
     function hideToast(t) {
-        t.classList.remove('show');
-        t.classList.add('hide');
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(120%)';
         t.addEventListener('transitionend', () => t.remove(), { once: true });
     }
 }
-
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
@@ -124,7 +136,7 @@ function renderUserPanel() {
                 canvas.width = 64; canvas.height = 64;
                 const ctx = canvas.getContext('2d');
                 const size = Math.min(img.width, img.height);
-                ctx.drawImage(img, (img.width-size)/2, (img.height-size)/2, size, size, 0,0,64,64);
+                ctx.drawImage(img, (img.width - size)/2, (img.height - size)/2, size, size, 0, 0, 64, 64);
                 const dataURL = canvas.toDataURL('image/png');
                 userAvatar.src = dataURL;
                 avatarPreviewContainer.classList.add('d-none');
@@ -217,8 +229,10 @@ function renderTable() {
 
     testCases.forEach((t,i)=>{
         if ((statusFilter !== 'all' && t.status !== statusFilter) ||
+            (statusFilter === 'unknown' && t.status) ||
             (priorityFilter !== 'all' && t.priority !== priorityFilter)) return;
-        if (!t.title.toLowerCase().includes(searchQuery)) return;
+
+        if (searchQuery && ![t.title,t.desc,t.steps,t.expected,t.notes].some(f=>f.toLowerCase().includes(searchQuery))) return;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -238,7 +252,7 @@ function renderTable() {
     });
 }
 
-// ------------------- Import / Export CSV / PDF -------------------
+// ------------------- Import / Export CSV -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
     if (!file) return showToast('Wybierz plik CSV', 'warning');
@@ -272,8 +286,7 @@ function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.text('Test Cases', 10, 10);
-    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']],
-                    body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
+    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']], body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
     doc.save('testCases.pdf');
     showToast('PDF wyeksportowane!', 'success');
 }
