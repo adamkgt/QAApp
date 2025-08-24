@@ -115,11 +115,23 @@
   <div class="row g-2 mb-3">
     <div class="col-md-3">
       <label for="statusFilter" class="form-label mb-0">Filtr statusu:</label>
-      <select id="statusFilter" class="form-select"></select>
+     <select id="statusFilter" class="form-select">
+  <option value="all" selected>Wszystkie statusy</option>
+  <option value="Pass">Pass</option>
+  <option value="Fail">Fail</option>
+  <option value="unknown">Brak statusu</option>
+</select>
     </div>
     <div class="col-md-3">
       <label for="priorityFilter" class="form-label mb-0">Filtr priorytetu:</label>
-      <select id="priorityFilter" class="form-select"></select>
+      <select id="priorityFilter" class="form-select">
+  <option value="all" selected>Wszystkie priorytety</option>
+  <option value="Niski">Niski</option>
+  <option value="Średni">Średni</option>
+  <option value="Wysoki">Wysoki</option>
+  <option value="Krytyczny">Krytyczny</option>
+</select>
+
     </div>
     <div class="col-md-4">
       <label for="searchQuery" class="form-label mb-0">Szukaj:</label>
@@ -189,3 +201,4 @@
 
 </body>
 </html>
+
