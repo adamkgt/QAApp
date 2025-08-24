@@ -248,43 +248,39 @@ function editTestCase(i) {
     document.getElementById('editIndex').value = i;
 }
 
-// ------------------- Render i Filtry -------------------
+// ------------------- Render tabeli z checkboxami -------------------
 function renderTable() {
-    const tbody = document.querySelector('#testTable tbody');
-    if(!tbody) return;
-    tbody.innerHTML = '';
+  const tbody = document.querySelector('#testTable tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
 
-    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-    const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
-    const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
+  const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+  const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+  const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
 
-    testCases.forEach((t,i)=>{
-        if(statusFilter !== 'all' && ((t.status || 'unknown') !== statusFilter)) return;
-        if(priorityFilter !== 'all' && (t.priority || '') !== priorityFilter) return;
-        if(searchQuery && ![t.title, t.desc, t.steps, t.expected, t.notes].some(s=>s.toLowerCase().includes(searchQuery))) return;
+  testCases.forEach((t, i) => {
+    if(statusFilter !== 'all' && ((t.status || 'unknown') !== statusFilter)) return;
+    if(priorityFilter !== 'all' && (t.priority || '') !== priorityFilter) return;
+    if(searchQuery && ![t.title, t.desc, t.steps, t.expected, t.notes].some(s=>s.toLowerCase().includes(searchQuery))) return;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
-            <td>${t.id}</td>
-            <td>${t.title}</td>
-            <td>${t.desc}</td>
-            <td>${t.steps}</td>
-            <td>${t.expected}</td>
-            <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
-            <td>${t.notes}</td>
-            <td>${t.priority}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${i})">Usuń</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    document.getElementById('selectAll')?.addEventListener('change', (e)=>{
-        document.querySelectorAll('.selectTest').forEach(cb => cb.checked = e.target.checked);
-    });
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
+      <td>${t.id || ''}</td>
+      <td>${t.title}</td>
+      <td>${t.desc}</td>
+      <td>${t.steps}</td>
+      <td>${t.expected}</td>
+      <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
+      <td>${t.notes}</td>
+      <td>${t.priority}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${i})">Usuń</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function deleteSelectedTestCases() {
@@ -309,6 +305,26 @@ function deleteSelectedTestCases() {
     showToast(`${selectedIndexes.length} test(y) usunięty(e)!`, 'warning');
 }
 
+// ------------------- Usuń zaznaczone -------------------
+function deleteSelectedTestCases() {
+  const selectedCheckboxes = Array.from(document.querySelectorAll('.selectTest:checked'));
+  if(selectedCheckboxes.length === 0) {
+    return showToast('Nie wybrano żadnych testów', 'warning');
+  }
+
+  if(!confirm(`Czy na pewno usunąć ${selectedCheckboxes.length} wybranych testów?`)) return;
+
+  // Usuń od końca, żeby indeksy się nie popsuły
+  selectedCheckboxes.sort((a,b)=>b.dataset.index - a.dataset.index).forEach(cb => {
+    const index = parseInt(cb.dataset.index);
+    testCases.splice(index,1);
+  });
+
+  localStorage.setItem('testCases', JSON.stringify(testCases));
+  renderTable();
+  showToast(`${selectedCheckboxes.length} testów usunięto!`, 'success');
+  updateStats();
+}
 
 
 
@@ -433,6 +449,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn').addEventListener('click', importFromCSV);
     document.getElementById('clearCSVFile').addEventListener('click', clearCSVFile);
+    document.getElementById('selectAll')?.addEventListener('change', function() {
+      const checked = this.checked;
+    document.querySelectorAll('.selectTest').forEach(cb => cb.checked = checked);
     
 
 
