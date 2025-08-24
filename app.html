@@ -14,7 +14,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="app.js" defer></script>
 
@@ -23,79 +22,110 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    body {
+      padding-top: 70px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 15px;
+    }
+    #userAvatar {
+      object-fit: cover;
+    }
+  </style>
 </head>
 <body class="bg-light">
 
-  <!-- 🔹 Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="#">QA Test Manager</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUserPanel">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse justify-content-end" id="navbarUserPanel">
-        <ul class="navbar-nav">
-          <li class="nav-item dropdown" id="userPanel"></li>
-        </ul>
-      </div>
+  <!-- 🔹 Navbar z panelem użytkownika -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top px-3">
+    <a class="navbar-brand fw-bold" href="#">QA Test Management</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUserPanel" aria-controls="navbarUserPanel" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarUserPanel">
+      <ul class="navbar-nav align-items-center">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" alt="Avatar" width="32" height="32">
+            <span id="userEmail" class="text-white">user@example.com</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+            <li>
+              <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
+              <div id="avatarPreviewContainer" class="p-2 d-none">
+                <p class="mb-1 small">Podgląd nowego awatara:</p>
+                <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
+                <div class="mt-2 d-flex gap-2">
+                  <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
+                  <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
+                </div>
+              </div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
+          </ul>
+        </li>
+      </ul>
     </div>
   </nav>
 
   <!-- 🔹 Główna zawartość -->
-  <div class="container" style="max-width: 1200px;">
+  <div class="container">
 
-    <!-- 🔹 Formularz -->
-    <section class="mb-4">
-      <form id="testForm" class="bg-white p-4 rounded shadow-sm">
-        <input type="hidden" id="editIndex" />
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label for="testName" class="form-label">Tytuł</label>
-            <input type="text" class="form-control" id="testName" required />
-          </div>
-          <div class="col-md-6">
-            <label for="testDesc" class="form-label">Opis</label>
-            <input type="text" class="form-control" id="testDesc" />
-          </div>
-          <div class="col-md-6">
-            <label for="testSteps" class="form-label">Kroki</label>
-            <textarea class="form-control" id="testSteps" rows="3"></textarea>
-          </div>
-          <div class="col-md-6">
-            <label for="expectedResult" class="form-label">Oczekiwany rezultat</label>
-            <textarea class="form-control" id="expectedResult" rows="3"></textarea>
-          </div>
-          <div class="col-md-3">
-            <label for="testStatus" class="form-label">Status</label>
-            <select class="form-select" id="testStatus">
-              <option value="">Wybierz status</option>
-              <option value="Pass">Pass</option>
-              <option value="Fail">Fail</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label for="testNotes" class="form-label">Uwagi</label>
-            <input type="text" class="form-control" id="testNotes" />
-          </div>
-          <div class="col-md-3">
-            <label for="testPriority" class="form-label">Priorytet</label>
-            <select class="form-select" id="testPriority">
-              <option value="">Brak</option>
-              <option value="Niski">Niski</option>
-              <option value="Średni">Średni</option>
-              <option value="Wysoki">Wysoki</option>
-              <option value="Krytyczny">Krytyczny</option>
-            </select>
-          </div>
+    <!-- 🔹 Formularz testów -->
+    <form id="testForm" class="mb-4">
+      <input type="hidden" id="editIndex" />
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label for="testName" class="form-label">Tytuł</label>
+          <input type="text" class="form-control" id="testName" required />
         </div>
-        <div class="d-flex gap-2 mt-3">
-          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
-          <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
+        <div class="col-md-6">
+          <label for="testDesc" class="form-label">Opis</label>
+          <input type="text" class="form-control" id="testDesc" />
         </div>
-      </form>
-    </section>
+        <div class="col-md-6">
+          <label for="testSteps" class="form-label">Kroki</label>
+          <textarea class="form-control" id="testSteps" rows="3"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label for="expectedResult" class="form-label">Oczekiwany rezultat</label>
+          <textarea class="form-control" id="expectedResult" rows="3"></textarea>
+        </div>
+        <div class="col-md-3">
+          <label for="testStatus" class="form-label">Status</label>
+          <select class="form-select" id="testStatus">
+            <option value="">Wybierz status</option>
+            <option value="Pass">Pass</option>
+            <option value="Fail">Fail</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="testNotes" class="form-label">Uwagi</label>
+          <input type="text" class="form-control" id="testNotes" />
+        </div>
+        <div class="col-md-3">
+          <label for="testPriority" class="form-label">Priorytet</label>
+          <select class="form-select" id="testPriority">
+            <option value="">Brak</option>
+            <option value="Niski">Niski</option>
+            <option value="Średni">Średni</option>
+            <option value="Wysoki">Wysoki</option>
+            <option value="Krytyczny">Krytyczny</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
+      </div>
+    </form>
 
+    
     <!-- 🔹 Filtry -->
     <section class="mb-4 bg-white p-4 rounded shadow-sm">
       <div class="row g-2">
@@ -196,3 +226,4 @@
   </div>
 </body>
 </html>
+
