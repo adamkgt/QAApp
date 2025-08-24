@@ -12,14 +12,23 @@ const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
-// ------------------- Toasty -------------------
+// ------------------- Funkcja Toast -------------------
 function showToast(message, type = 'success') {
     const toastEl = document.getElementById('appToast');
-    const toastMessage = document.getElementById('toastMessage');
-    toastMessage.textContent = message;
+    const toastBody = document.getElementById('toastMessage');
 
-    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
-    const toast = new bootstrap.Toast(toastEl);
+    toastBody.textContent = message;
+
+    toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
+    switch(type) {
+        case 'success': toastEl.classList.add('text-bg-success'); break;
+        case 'error': toastEl.classList.add('text-bg-danger'); break;
+        case 'warning': toastEl.classList.add('text-bg-warning'); break;
+        case 'info': toastEl.classList.add('text-bg-info'); break;
+        default: toastEl.classList.add('text-bg-success');
+    }
+
+    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
     toast.show();
 }
 
@@ -48,12 +57,20 @@ function renderUserPanel() {
         .then(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                if (data.avatar) { userAvatar.src = data.avatar; localStorage.setItem('userAvatar', data.avatar); }
-                if (currentUser.email) { userPanelEmail.textContent = currentUser.email; localStorage.setItem('userEmail', currentUser.email); }
+                if (data.avatar) {
+                    userAvatar.src = data.avatar;
+                    localStorage.setItem('userAvatar', data.avatar);
+                }
+                if (currentUser.email) {
+                    userPanelEmail.textContent = currentUser.email;
+                    localStorage.setItem('userEmail', currentUser.email);
+                }
             } else {
                 userAvatar.src = 'img/default-avatar.png';
                 userPanelEmail.textContent = currentUser.email || '';
-                db.collection('Users').doc(currentUser.uid).set({ avatar: 'img/default-avatar.png' });
+                db.collection('Users').doc(currentUser.uid).set({
+                    avatar: 'img/default-avatar.png'
+                });
                 localStorage.setItem('userAvatar', 'img/default-avatar.png');
                 localStorage.setItem('userEmail', currentUser.email || '');
             }
@@ -76,7 +93,7 @@ function renderUserPanel() {
             if (newPassword) {
                 currentUser.updatePassword(newPassword)
                     .then(() => showToast('Hasło zmienione!', 'success'))
-                    .catch(err => showToast('Błąd: ' + err.message, 'danger'));
+                    .catch(err => showToast('Błąd: ' + err.message, 'error'));
             }
         });
     }
@@ -105,7 +122,6 @@ function renderUserPanel() {
             input.onchange = () => {
                 selectedFile = input.files[0];
                 if (!selectedFile) return;
-
                 const reader = new FileReader();
                 reader.onload = e => {
                     avatarPreview.src = e.target.result;
@@ -143,7 +159,9 @@ function renderUserPanel() {
                     avatarPreviewContainer.classList.add('d-none');
                     selectedFile = null;
 
-                    db.collection('Users').doc(currentUser.uid).set({ avatar: dataURL }, { merge: true });
+                    db.collection('Users').doc(currentUser.uid).set({
+                        avatar: dataURL
+                    }, { merge: true });
                     localStorage.setItem('userAvatar', dataURL);
 
                     showToast('Awatar został zmieniony!', 'success');
@@ -191,11 +209,11 @@ function saveTestCase() {
     if (index === '') {
         testCasesRef.doc(data.name).set(data)
             .then(() => { resetForm(); showToast('Test dodany!', 'success'); })
-            .catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+            .catch(err => showToast('Błąd zapisu: ' + err.message, 'error'));
     } else {
         testCasesRef.doc(index).update(data)
-            .then(() => { resetForm(); showToast('Test edytowany!', 'success'); })
-            .catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+            .then(() => { resetForm(); showToast('Test zaktualizowany!', 'success'); })
+            .catch(err => showToast('Błąd zapisu: ' + err.message, 'error'));
     }
 }
 
@@ -215,18 +233,16 @@ function editTestCase(id) {
 function deleteTestCase(id) {
     if (!confirm('Na pewno usunąć ten test?')) return;
     db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete()
-        .then(() => showToast('Test został usunięty!', 'success'))
-        .catch(err => showToast('Błąd: ' + err.message, 'danger'));
+        .then(() => showToast('Test usunięty!', 'success'))
+        .catch(err => showToast('Błąd: ' + err.message, 'error'));
 }
 
 function deleteAllTestCases() {
     if (!confirm('Na pewno usunąć wszystkie testy?')) return;
     const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    const batch = db.batch();
-    testCases.forEach(tc => batch.delete(testCasesRef.doc(tc.id)));
-    batch.commit()
-        .then(() => showToast('Wszystkie testy zostały usunięte!', 'success'))
-        .catch(err => showToast('Błąd: ' + err.message, 'danger'));
+    Promise.all(testCases.map(tc => testCasesRef.doc(tc.id).delete()))
+        .then(() => showToast('Wszystkie testy usunięte!', 'success'))
+        .catch(err => showToast('Błąd: ' + err.message, 'error'));
 }
 
 function resetForm() {
@@ -321,15 +337,24 @@ function updateCharts() {
 // ------------------- Import / Export -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
-    if(!file) { showToast('Wybierz plik CSV!', 'warning'); return; }
+    if(!file) return showToast('Wybierz plik CSV!', 'warning');
     const reader = new FileReader();
     reader.onload = function(e){
         const lines = e.target.result.split('\n').filter(l=>l.trim()!=='');
-        lines.shift();
+        lines.shift(); // usuń nagłówek
         lines.forEach(line=>{
             const [name, desc, steps, expected, status, notes, priority] = line.split(',');
             if(!name) return;
-            const data = {name:name.replace(/"/g,'').trim(), desc:desc.replace(/"/g,'').trim(), steps:steps.replace(/"/g,'').trim(), expected:expected.replace(/"/g,'').trim(), status:status.replace(/"/g,'').trim(), notes:notes.replace(/"/g,'').trim(), priority:priority.replace(/"/g,'').trim(), history:[`Import: ${new Date().toLocaleString()}`]};
+            const data = {
+                name:name.replace(/"/g,'').trim(),
+                desc:desc.replace(/"/g,'').trim(),
+                steps:steps.replace(/"/g,'').trim(),
+                expected:expected.replace(/"/g,'').trim(),
+                status:status.replace(/"/g,'').trim(),
+                notes:notes.replace(/"/g,'').trim(),
+                priority:priority.replace(/"/g,'').trim(),
+                history:[`Import: ${new Date().toLocaleString()}`]
+            };
             db.collection('Users').doc(currentUser.uid).collection('testCases').doc(data.name).set(data).catch(err=>console.error(err));
         });
         loadTestCases();
@@ -339,7 +364,6 @@ function importFromCSV() {
 }
 
 function exportToCSV() {
-    if(testCases.length===0){ showToast('Brak testów do eksportu!', 'warning'); return; }
     let csv="Nazwa,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n";
     testCases.forEach(tc=>{
         csv+=`"${tc.name.replace(/"/g,'""')}","${tc.desc.replace(/"/g,'""')}","${tc.steps.replace(/"/g,'""')}","${tc.expected.replace(/"/g,'""')}","${tc.status}","${tc.notes}","${tc.priority}"\n`;
@@ -354,7 +378,6 @@ function exportToCSV() {
 }
 
 function exportToPDF() {
-    if(testCases.length===0){ showToast('Brak testów do eksportu!', 'warning'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFont("helvetica","normal");
@@ -370,7 +393,7 @@ function exportToPDF() {
 
 // ------------------- Init -------------------
 document.addEventListener('DOMContentLoaded', ()=>{
-    if(testForm) testForm.addEventListener('submit', e=>{ e.preventDefault(); saveTestCase(); });
+    if(testForm) testForm.addEventListener('submit', e=>{e.preventDefault(); saveTestCase();});
     if(statusFilter && priorityFilter && searchQuery){
         statusFilter.addEventListener('change', renderTable);
         priorityFilter.addEventListener('change', renderTable);
@@ -381,6 +404,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const importBtn = document.getElementById('importCSVBtn');
     if(importBtn && csvFileInput){
         importBtn.addEventListener('click', ()=>{
+            if(!csvFileInput.files.length){ showToast('Wybierz plik CSV!', 'warning'); return; }
             importFromCSV();
         });
     }
