@@ -192,6 +192,18 @@ function resetForm() {
     document.getElementById('editIndex').value = '';
 }
 
+function clearFilters() {
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const searchQuery = document.getElementById('searchQuery');
+
+    if (statusFilter) statusFilter.value = 'all';
+    if (priorityFilter) priorityFilter.value = 'all';
+    if (searchQuery) searchQuery.value = '';
+
+    renderTable();
+}
+
 function deleteTestCase(i) {
     if (!confirm('Usunąć ten test?')) return;
     testCases.splice(i,1);
@@ -339,4 +351,5 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
+    
 });
