@@ -3,29 +3,18 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let testCases = [];
-let sortKey = '';
-let sortAsc = true;
 
 // ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
-    // Root dla toastów
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
-        toastRoot.style.position = 'fixed';
-        toastRoot.style.top = '0';
-        toastRoot.style.right = '0';
-        toastRoot.style.padding = '1rem';
-        toastRoot.style.zIndex = 1100;
-        toastRoot.style.pointerEvents = 'none'; // nie blokuje tła
         document.body.appendChild(toastRoot);
     }
 
-    // Tworzymy toast
     const toast = document.createElement('div');
-    toast.className = `toast toast-slide toast-${type}`;
-    toast.style.pointerEvents = 'auto';
+    toast.className = `toast toast-${type}`;
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
@@ -35,26 +24,24 @@ function showToast(message, type = 'success', duration = 3000) {
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
+
     toastRoot.appendChild(toast);
 
     const closeBtn = toast.querySelector('.btn-close');
     closeBtn.addEventListener('click', () => hideToast(toast));
 
     // Wyzwalamy animację wjazdu
-    requestAnimationFrame(() => {
-        toast.classList.add('show'); // slide in
-    });
+    requestAnimationFrame(() => { toast.classList.add('show'); });
 
-    // Automatyczne wyjazd po czasie
-    setTimeout(() => hideToast(toast), duration);
+    // Wyjazd po czasie
+    setTimeout(() => { hideToast(toast); }, duration);
 
-    function hideToast(toastEl) {
-        toastEl.classList.remove('show');
-        toastEl.classList.add('hide'); // slide out
-        toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
+    function hideToast(t) {
+        t.classList.remove('show');
+        t.classList.add('hide');
+        t.addEventListener('transitionend', () => t.remove(), { once: true });
     }
 }
-
 
 // ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
@@ -139,7 +126,7 @@ function renderUserPanel() {
                 canvas.width = 64; canvas.height = 64;
                 const ctx = canvas.getContext('2d');
                 const size = Math.min(img.width, img.height);
-                ctx.drawImage(img, (img.width - size)/2, (img.height - size)/2, size, size, 0, 0, 64, 64);
+                ctx.drawImage(img, (img.width-size)/2, (img.height-size)/2, size, size, 0,0,64,64);
                 const dataURL = canvas.toDataURL('image/png');
                 userAvatar.src = dataURL;
                 avatarPreviewContainer.classList.add('d-none');
@@ -226,7 +213,15 @@ function editTestCase(i) {
 function renderTable() {
     const tbody = document.querySelector('#testTable tbody');
     tbody.innerHTML = '';
+    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+    const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
+
     testCases.forEach((t,i)=>{
+        if ((statusFilter !== 'all' && t.status !== statusFilter) ||
+            (priorityFilter !== 'all' && t.priority !== priorityFilter)) return;
+        if (!t.title.toLowerCase().includes(searchQuery)) return;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${t.title}</td>
@@ -245,7 +240,7 @@ function renderTable() {
     });
 }
 
-// ------------------- Import / Export CSV -------------------
+// ------------------- Import / Export CSV / PDF -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
     if (!file) return showToast('Wybierz plik CSV', 'warning');
@@ -279,7 +274,8 @@ function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.text('Test Cases', 10, 10);
-    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']], body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
+    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']],
+                    body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
     doc.save('testCases.pdf');
     showToast('PDF wyeksportowane!', 'success');
 }
