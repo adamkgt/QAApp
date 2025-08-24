@@ -12,21 +12,35 @@ const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
-function showToast(message, type = 'success', delay = 3000) {
-    const toastEl = document.getElementById('appToast');
-    const toastMessage = document.getElementById('toastMessage');
+// ------------------- Toast (animowany) -------------------
+function showToast(message, type = 'success', opts = {}) {
+  const toastEl = document.getElementById('appToast');
+  const toastMsg = document.getElementById('toastMessage');
+  if (!toastEl || !toastMsg) return;
 
-    // Ustaw klasę koloru
-    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+  // Ustaw treść
+  toastMsg.textContent = message;
 
-    // Wstaw wiadomość
-    toastMessage.textContent = message;
+  // Podmień wariant kolorystyczny
+  toastEl.classList.remove(
+    'text-bg-success','text-bg-danger','text-bg-warning','text-bg-info',
+    'text-bg-primary','text-bg-secondary','text-bg-dark','text-bg-light'
+  );
+  toastEl.classList.add(`text-bg-${type}`);
 
-    // Inicjalizacja i pokazanie toastu z animacją
-    const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: delay });
-    toast.show();
+  // Zrestartuj animację (gdy kilka toastów idzie szybko po sobie)
+  toastEl.classList.remove('show');
+  // wymuś reflow
+  void toastEl.offsetWidth;
+
+  const instance = bootstrap.Toast.getOrCreateInstance(toastEl, {
+    delay: opts.delay ?? 3000,
+    autohide: opts.autohide ?? true,
+    animation: true
+  });
+
+  instance.show();
 }
-
 
 // ------------------- Funkcja użytkownika -------------------
 function renderUserPanel() {
