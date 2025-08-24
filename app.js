@@ -449,11 +449,5 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn').addEventListener('click', importFromCSV);
     document.getElementById('clearCSVFile').addEventListener('click', clearCSVFile);
-    document.getElementById('selectAll')?.addEventListener('change', function() {
-      const checked = this.checked;
-    document.querySelectorAll('.selectTest').forEach(cb => cb.checked = checked);
-    
-
-
     
 });
