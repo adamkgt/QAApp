@@ -26,6 +26,18 @@
 
   <!-- Twój JS -->
   <script src="app.js" defer></script>
+
+  <style>
+    /* Nowoczesne przyciski Bootstrap */
+    .btn {
+      border-radius: 0.5rem;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+  </style>
 </head>
 <body class="bg-light">
 
@@ -106,8 +118,8 @@
       </div>
     </div>
     <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Zapisz</button>
-      <button type="button" class="btn btn-outline-secondary" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
+      <button type="submit" class="btn btn-primary d-flex align-items-center gap-2"><i class="bi bi-save"></i> Zapisz</button>
+      <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="resetForm()"><i class="bi bi-x-circle"></i> Wyczyść</button>
     </div>
   </form>
 
@@ -115,30 +127,29 @@
   <div class="row g-2 mb-3">
     <div class="col-md-3">
       <label for="statusFilter" class="form-label mb-0">Filtr statusu:</label>
-     <select id="statusFilter" class="form-select">
-  <option value="all" selected>Wszystkie statusy</option>
-  <option value="Pass">Pass</option>
-  <option value="Fail">Fail</option>
-  <option value="unknown">Brak statusu</option>
-</select>
+      <select id="statusFilter" class="form-select">
+        <option value="all">Wszystkie</option>
+        <option value="Pass">Pass</option>
+        <option value="Fail">Fail</option>
+        <option value="unknown">Brak statusu</option>
+      </select>
     </div>
     <div class="col-md-3">
       <label for="priorityFilter" class="form-label mb-0">Filtr priorytetu:</label>
       <select id="priorityFilter" class="form-select">
-  <option value="all" selected>Wszystkie priorytety</option>
-  <option value="Niski">Niski</option>
-  <option value="Średni">Średni</option>
-  <option value="Wysoki">Wysoki</option>
-  <option value="Krytyczny">Krytyczny</option>
-</select>
-
+        <option value="all">Wszystkie</option>
+        <option value="Niski">Niski</option>
+        <option value="Średni">Średni</option>
+        <option value="Wysoki">Wysoki</option>
+        <option value="Krytyczny">Krytyczny</option>
+      </select>
     </div>
     <div class="col-md-4">
       <label for="searchQuery" class="form-label mb-0">Szukaj:</label>
       <input id="searchQuery" class="form-control" placeholder="np. Logowanie" />
     </div>
     <div class="col-md-2 d-flex align-items-end">
-      <button class="btn btn-outline-secondary w-100" onclick="clearFilters()"><i class="bi bi-funnel"></i> Wyczyść filtry</button>
+      <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" onclick="clearFilters()"><i class="bi bi-funnel"></i> Wyczyść filtry</button>
     </div>
   </div>
 
@@ -163,7 +174,7 @@
 
   <!-- Usuń wszystkie -->
   <div class="mb-4 text-end">
-    <button class="btn btn-danger" onclick="deleteAllTestCases()"><i class="bi bi-trash"></i> Usuń wszystkie</button>
+    <button class="btn btn-danger d-flex align-items-center gap-2" onclick="deleteAllTestCases()"><i class="bi bi-trash"></i> Usuń wszystkie</button>
   </div>
 
   <!-- Statystyki i wykres -->
@@ -178,19 +189,25 @@
     </div>
   </div>
 
-  <!-- Import / Export CSV -->
+  <!-- Import / Export CSV/PDF -->
   <div class="row g-2 mt-4">
     <div class="col-md-4">
       <input type="file" id="csvFile" class="form-control" />
     </div>
     <div class="col-md-2">
-      <button class="btn btn-outline-primary w-100" id="importCSVBtn"><i class="bi bi-file-earmark-arrow-up"></i> Import CSV</button>
+      <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" id="importCSVBtn">
+        <i class="bi bi-file-earmark-arrow-up"></i> Import CSV
+      </button>
     </div>
     <div class="col-md-2">
-      <button class="btn btn-outline-success w-100" onclick="exportToCSV()"><i class="bi bi-file-earmark-arrow-down"></i> Eksport CSV</button>
+      <button class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2" onclick="exportToCSV()">
+        <i class="bi bi-file-earmark-arrow-down"></i> Eksport CSV
+      </button>
     </div>
     <div class="col-md-2">
-      <button class="btn btn-outline-warning w-100" onclick="exportToPDF()"><i class="bi bi-file-earmark-pdf"></i> Eksport PDF</button>
+      <button class="btn btn-warning w-100 d-flex align-items-center justify-content-center gap-2" onclick="exportToPDF()">
+        <i class="bi bi-file-earmark-pdf"></i> Eksport PDF
+      </button>
     </div>
   </div>
 
@@ -201,4 +218,3 @@
 
 </body>
 </html>
-
