@@ -12,30 +12,19 @@ const statusFilter = document.getElementById("statusFilter");
 const priorityFilter = document.getElementById("priorityFilter");
 const searchQuery = document.getElementById("searchQuery");
 
-function showToast(message, type = 'success', duration = 3000) {
+function showToast(message, type = 'success', delay = 3000) {
     const toastEl = document.getElementById('appToast');
     const toastMessage = document.getElementById('toastMessage');
 
-    // Resetuj klasy animacji
-    toastEl.classList.remove('toast-slide-in', 'toast-slide-out', 'text-bg-success', 'text-bg-danger', 'text-bg-warning');
-    
-    // Dodaj typ tła
-    toastEl.classList.add(`text-bg-${type}`, 'border-0', 'toast-slide-in');
+    // Ustaw klasę koloru
+    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
 
+    // Wstaw wiadomość
     toastMessage.textContent = message;
 
-    // Pokaż toast
-    const toast = new bootstrap.Toast(toastEl, { autohide: false });
+    // Inicjalizacja i pokazanie toastu z animacją
+    const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: delay });
     toast.show();
-
-    // Po czasie animacja wyjazdu i ukrycie
-    setTimeout(() => {
-        toastEl.classList.remove('toast-slide-in');
-        toastEl.classList.add('toast-slide-out');
-
-        // Po animacji ukryj toast
-        toastEl.addEventListener('animationend', () => toast.hide(), { once: true });
-    }, duration);
 }
 
 
