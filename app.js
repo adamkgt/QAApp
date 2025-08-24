@@ -352,6 +352,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
     document.getElementById('clearCSVFile')?.addEventListener('click', () => {
-    document.getElementById('csvFile').value = '';
+        const fileInput = document.getElementById('csvFile');
+    // Tworzymy nowy element i zastępujemy stary, żeby na pewno było czyste
+        const newInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newInput, fileInput);
+});
+
     
 });
