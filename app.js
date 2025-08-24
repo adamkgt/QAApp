@@ -14,35 +14,58 @@ const searchQuery = document.getElementById("searchQuery");
 const toastRoot = document.getElementById("toastRoot");
 
 // ------------------- Toasty z animacją -------------------
-function showToast(message, type = 'success') {
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-bg-${type} border-0 toast-slide`;
-    toastEl.innerHTML = `
+function showToast(message, type = 'success', duration = 3000) {
+    // Root, gdzie będą pojawiać się toasty
+    let toastRoot = document.getElementById('toastRoot');
+    if (!toastRoot) {
+        toastRoot = document.createElement('div');
+        toastRoot.id = 'toastRoot';
+        toastRoot.className = 'position-fixed top-0 end-0 p-3';
+        toastRoot.style.zIndex = 1100;
+        document.body.appendChild(toastRoot);
+    }
+
+    // Tworzymy toast
+    const toast = document.createElement('div');
+    toast.className = `toast toast-slide toast-${type}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-    toastRoot.appendChild(toastEl);
 
-    // zamykanie po kliknięciu
-    const closeBtn = toastEl.querySelector('.btn-close');
-    closeBtn.addEventListener('click', () => hideToast(toastEl));
+    toastRoot.appendChild(toast);
 
-    // animacja wjazdu
-    requestAnimationFrame(() => {
-        toastEl.classList.add('show');
+    // Zdarzenie dla przycisku zamykania
+    const closeBtn = toast.querySelector('.btn-close');
+    closeBtn.addEventListener('click', () => {
+        hideToast(toast);
     });
 
-    // automatyczne ukrycie po 3s
-    setTimeout(() => hideToast(toastEl), 3000);
+    // Wyzwalamy animację wjazdu
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    // Po czasie duration toast zaczyna wyjazd
+    setTimeout(() => {
+        hideToast(toast);
+    }, duration);
+
+    function hideToast(toastEl) {
+        toastEl.classList.remove('show');
+        toastEl.classList.add('hide');
+        toastEl.addEventListener('transitionend', () => {
+            toastEl.remove();
+        }, { once: true });
+    }
 }
 
-function hideToast(toastEl) {
-    toastEl.classList.remove('show');
-    toastEl.classList.add('hide');
-    toastEl.addEventListener('transitionend', () => toastEl.remove(), {once: true});
-}
 
 // ------------------- Funkcja użytkownika -------------------
 function renderUserPanel() {
