@@ -300,6 +300,15 @@ function updateStats() {
 }
 
 // ------------------- Import / Export CSV -------------------
+function clearCSVFile() {
+    const oldInput = document.getElementById('csvFile');
+    const newInput = oldInput.cloneNode(true); // kopiujemy atrybuty, ale bez pliku
+    oldInput.parentNode.replaceChild(newInput, oldInput);
+
+    // Ponownie podpinamy obsługę przycisku importu
+    document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
+}
+
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
     if (!file) return showToast('Wybierz plik CSV', 'warning');
@@ -351,12 +360,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
-    document.getElementById('clearCSVFile')?.addEventListener('click', () => {
-        const fileInput = document.getElementById('csvFile');
-    // Tworzymy nowy element i zastępujemy stary, żeby na pewno było czyste
-        const newInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(newInput, fileInput);
-});
+    document.getElementById('clearCSVFile')?.addEventListener('click', clearCSVFile);
+    
+
 
     
 });
