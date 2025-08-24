@@ -40,13 +40,17 @@ function renderUserPanel() {
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
     if (!user) {
-        window.location.href = "index.html";
+        window.location.href = "index.html"; // przekierowanie do logowania
     } else {
         currentUser = user;
+        // Wywołanie panelu użytkownika
         renderUserPanel();
+
+        // Załaduj przypadki testowe użytkownika
         loadTestCases();
     }
 });
+
 
 function loadTestCases() {
     db.collection('Users').doc(currentUser.uid).collection('testCases')
