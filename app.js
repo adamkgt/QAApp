@@ -6,60 +6,45 @@ let testCases = [];
 let sortKey = '';
 let sortAsc = true;
 
-// ------------------- Elementy DOM -------------------
-const testForm = document.getElementById("testForm");
-const statusFilter = document.getElementById("statusFilter");
-const priorityFilter = document.getElementById("priorityFilter");
-const searchQuery = document.getElementById("searchQuery");
-const toastRoot = document.getElementById("toastRoot");
-
-// ------------------- Toasty z animacją -------------------
+// ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
-    // Root, gdzie będą pojawiać się toasty
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
-        toastRoot.style.position = 'fixed';
-        toastRoot.style.top = '0';
-        toastRoot.style.right = '0';
-        toastRoot.style.padding = '1rem';
+        toastRoot.className = 'position-fixed top-0 end-0 p-3';
         toastRoot.style.zIndex = 1100;
-        toastRoot.style.pointerEvents = 'none';
         document.body.appendChild(toastRoot);
     }
 
-    // Tworzymy toast
     const toast = document.createElement('div');
     toast.className = `toast toast-slide toast-${type}`;
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
-
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-
     toastRoot.appendChild(toast);
 
-    // Przycisk zamykania
+    // Obsługa przycisku zamykania
     const closeBtn = toast.querySelector('.btn-close');
     closeBtn.addEventListener('click', () => hideToast(toast));
 
-    // Wjazd toastu
+    // Animacja wjazdu
     requestAnimationFrame(() => {
         toast.classList.add('show');
     });
 
-    // Wyjazd po czasie duration
-    const timer = setTimeout(() => hideToast(toast), duration);
+    // Automatyczne ukrycie po czasie
+    setTimeout(() => {
+        hideToast(toast);
+    }, duration);
 
-    // Funkcja chowająca toast
     function hideToast(toastEl) {
-        clearTimeout(timer);
         toastEl.classList.remove('show');
         toastEl.classList.add('hide');
         toastEl.addEventListener('transitionend', () => {
@@ -68,9 +53,7 @@ function showToast(message, type = 'success', duration = 3000) {
     }
 }
 
-
-
-// ------------------- Funkcja użytkownika -------------------
+// ------------------- Panel użytkownika -------------------
 function renderUserPanel() {
     const userPanelEmail = document.getElementById('userEmail');
     const userAvatar = document.getElementById('userAvatar');
@@ -91,69 +74,64 @@ function renderUserPanel() {
     if (savedAvatar) userAvatar.src = savedAvatar;
 
     db.collection('Users').doc(currentUser.uid).get()
-      .then(doc => {
-          if (doc.exists) {
-              const data = doc.data();
-              if (data.avatar) userAvatar.src = data.avatar;
-              if (currentUser.email) userPanelEmail.textContent = currentUser.email;
-              localStorage.setItem('userAvatar', data.avatar || '');
-              localStorage.setItem('userEmail', currentUser.email || '');
-          } else {
-              userAvatar.src = 'img/default-avatar.png';
-              userPanelEmail.textContent = currentUser.email || '';
-              db.collection('Users').doc(currentUser.uid).set({avatar:'img/default-avatar.png'});
-              localStorage.setItem('userAvatar','img/default-avatar.png');
-              localStorage.setItem('userEmail',currentUser.email || '');
-          }
-      })
-      .catch(err => {
-          console.error(err);
-          userAvatar.src = 'img/default-avatar.png';
-          userPanelEmail.textContent = currentUser.email || '';
-      })
-      .finally(() => {
-          userAvatar.style.opacity = 1;
-          userPanelEmail.style.opacity = 1;
-      });
+        .then(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.avatar) userAvatar.src = data.avatar;
+                if (currentUser.email) userPanelEmail.textContent = currentUser.email;
+                localStorage.setItem('userAvatar', data.avatar || '');
+                localStorage.setItem('userEmail', currentUser.email || '');
+            } else {
+                userAvatar.src = 'img/default-avatar.png';
+                userPanelEmail.textContent = currentUser.email || '';
+                db.collection('Users').doc(currentUser.uid).set({ avatar: 'img/default-avatar.png' });
+                localStorage.setItem('userAvatar', 'img/default-avatar.png');
+                localStorage.setItem('userEmail', currentUser.email || '');
+            }
+        })
+        .finally(() => {
+            userAvatar.style.opacity = 1;
+            userPanelEmail.style.opacity = 1;
+        });
 
     // Zmiana hasła
     const editBtn = document.getElementById('editProfileBtn');
-    if(editBtn){
-        editBtn.addEventListener('click', ()=>{
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
             const newPassword = prompt('Podaj nowe hasło:');
-            if(newPassword){
+            if (newPassword) {
                 currentUser.updatePassword(newPassword)
-                  .then(()=> showToast('Hasło zmienione!','success'))
-                  .catch(err=> showToast('Błąd: '+err.message,'danger'));
+                    .then(() => showToast('Hasło zmienione!', 'success'))
+                    .catch(err => showToast('Błąd: ' + err.message, 'danger'));
             }
         });
     }
 
     // Wylogowanie
     const logoutBtn = document.getElementById('logoutBtnPanel');
-    if(logoutBtn){
-        logoutBtn.addEventListener('click', ()=>{
-            auth.signOut().then(()=>{
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
                 localStorage.removeItem('userEmail');
                 localStorage.removeItem('userAvatar');
-                window.location.href='index.html';
+                window.location.href = 'index.html';
             });
         });
     }
 
     // Zmiana awatara
     let selectedFile = null;
-    if(changeAvatarBtn){
-        changeAvatarBtn.addEventListener('click', ()=>{
+    if (changeAvatarBtn) {
+        changeAvatarBtn.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
             input.click();
-            input.onchange = ()=>{
+            input.onchange = () => {
                 selectedFile = input.files[0];
-                if(!selectedFile) return;
+                if (!selectedFile) return;
                 const reader = new FileReader();
-                reader.onload = e=>{
+                reader.onload = e => {
                     avatarPreview.src = e.target.result;
                     avatarPreviewContainer.classList.remove('d-none');
                 };
@@ -162,34 +140,34 @@ function renderUserPanel() {
         });
     }
 
-    if(cancelAvatarBtn){
-        cancelAvatarBtn.addEventListener('click', ()=>{
+    if (cancelAvatarBtn) {
+        cancelAvatarBtn.addEventListener('click', () => {
             avatarPreviewContainer.classList.add('d-none');
-            avatarPreview.src='';
-            selectedFile=null;
+            avatarPreview.src = '';
+            selectedFile = null;
         });
     }
 
-    if(saveAvatarBtn){
-        saveAvatarBtn.addEventListener('click', ()=>{
-            if(!selectedFile) return;
+    if (saveAvatarBtn) {
+        saveAvatarBtn.addEventListener('click', () => {
+            if (!selectedFile) return;
             const reader = new FileReader();
-            reader.onload = e=>{
+            reader.onload = e => {
                 const img = new Image();
-                img.onload = ()=>{
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    canvas.width=64;
-                    canvas.height=64;
+                    canvas.width = 64;
+                    canvas.height = 64;
                     const ctx = canvas.getContext('2d');
-                    const size = Math.min(img.width,img.height);
-                    ctx.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,64,64);
+                    const size = Math.min(img.width, img.height);
+                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 64, 64);
                     const dataURL = canvas.toDataURL('image/png');
                     userAvatar.src = dataURL;
                     avatarPreviewContainer.classList.add('d-none');
                     selectedFile = null;
-                    db.collection('Users').doc(currentUser.uid).set({avatar:dataURL},{merge:true});
-                    localStorage.setItem('userAvatar',dataURL);
-                    showToast('Awatar został zmieniony!','success');
+                    db.collection('Users').doc(currentUser.uid).set({ avatar: dataURL }, { merge: true });
+                    localStorage.setItem('userAvatar', dataURL);
+                    showToast('Awatar został zmieniony!', 'success');
                 };
                 img.src = e.target.result;
             };
@@ -198,11 +176,11 @@ function renderUserPanel() {
     }
 }
 
-// ------------------- Ochrona strony i ładowanie danych -------------------
-auth.onAuthStateChanged(user=>{
-    if(!user) window.location.href="index.html";
-    else{
-        currentUser=user;
+// ------------------- Auth i ładowanie danych -------------------
+auth.onAuthStateChanged(user => {
+    if (!user) window.location.href = "index.html";
+    else {
+        currentUser = user;
         renderUserPanel();
         loadTestCases();
     }
@@ -405,10 +383,24 @@ function exportToPDF(){
     showToast('PDF wyeksportowane!','success');
 }
 
-// ------------------- Obsługa formularza -------------------
-if(testForm){
-    testForm.addEventListener('submit', e=>{
-        e.preventDefault();
-        saveTestCase();
-    });
-}
+
+// ------------------- Init -------------------
+document.addEventListener('DOMContentLoaded', () => {
+    const testForm = document.getElementById('testForm');
+    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
+
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const searchQuery = document.getElementById('searchQuery');
+    if (statusFilter && priorityFilter && searchQuery) {
+        statusFilter.addEventListener('change', renderTable);
+        priorityFilter.addEventListener('change', renderTable);
+        searchQuery.addEventListener('input', renderTable);
+    }
+
+    const importBtn = document.getElementById('importCSVBtn');
+    const csvFileInput = document.getElementById('csvFile');
+    if (importBtn && csvFileInput) {
+        importBtn.addEventListener('click', () => importFromCSV());
+    }
+});
