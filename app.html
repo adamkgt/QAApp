@@ -189,27 +189,30 @@
     </div>
   </div>
 
-  <!-- Import / Export CSV/PDF -->
-  <div class="row g-2 mt-4">
-    <div class="col-md-4">
-      <input type="file" id="csvFile" class="form-control" />
+<div class="row g-2 mt-4">
+  <div class="col-md-4">
+    <div class="input-group">
+      <input type="file" id="csvFile" class="form-control">
+      <button class="btn btn-outline-secondary" type="button" id="clearCSVFile">&times;</button>
     </div>
-    <div class="col-md-2">
-      <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" id="importCSVBtn">
-        <i class="bi bi-file-earmark-arrow-up"></i> Import CSV
-      </button>
-    </div>
-<div class="col-md-2">
-  <button class="btn btn-outline-success w-100" onclick="exportToCSV()">
-    <i class="bi bi-file-earmark-arrow-down"></i> Eksport CSV
-  </button>
-</div>
-<div class="col-md-2">
-  <button class="btn btn-outline-danger w-100" onclick="exportToPDF()">
-    <i class="bi bi-file-earmark-pdf"></i> Eksport PDF
-  </button>
-</div>
   </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-secondary w-100" id="importCSVBtn">
+      <i class="bi bi-file-earmark-arrow-up"></i> Import CSV
+    </button>
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-secondary w-100" onclick="exportToCSV()">
+      <i class="bi bi-file-earmark-arrow-down"></i> Eksport CSV
+    </button>
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-secondary w-100" onclick="exportToPDF()">
+      <i class="bi bi-file-earmark-pdf"></i> Eksport PDF
+    </button>
+  </div>
+</div>
+
 
 </div>
 
@@ -218,4 +221,5 @@
 
 </body>
 </html>
+
 
