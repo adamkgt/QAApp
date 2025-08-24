@@ -164,4 +164,26 @@ tr:hover .unknown-badge {
     .header-logo {
         height: 40px;
     }
+
+}
+
+/* style.css - dodatkowe style dla toastów */
+#appToast {
+  min-width: 250px;       /* minimalna szerokość */
+  max-width: 350px;       /* maksymalna szerokość */
+  font-size: 0.9rem;      /* trochę mniejsza czcionka */
+  box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.2); /* delikatny cień */
+  border-radius: 0.5rem;  /* zaokrąglone rogi */
+  opacity: 0.95;          /* lekka przezroczystość */
+}
+
+/* Dostosowanie koloru zamykania przy ciemnych toastach */
+.toast .btn-close {
+  filter: brightness(0.8);
+}
+
+/* Dodatkowy margines, żeby toast nie przyklejał się do krawędzi */
+.position-fixed.top-0.end-0.p-3 {
+  top: 1rem !important;
+  right: 1rem !important;
 }
