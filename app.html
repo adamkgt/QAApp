@@ -80,7 +80,7 @@
     <div class="row g-3">
   <div class="col-md-3">
     <label for="testID" class="form-label">ID</label>
-    <input type="text" class="form-control" id="testID" readonly />
+    <input type="text" class="form-control" id="testID" required />
   </div>
   <div class="col-md-3">
     <label for="testName" class="form-label">Tytuł</label>
@@ -90,26 +90,17 @@
     <label for="testDesc" class="form-label">Opis</label>
     <input type="text" class="form-control" id="testDesc" />
   </div>
-    <div class="row g-3">
-      <div class="col-md-3">
-        <label for="testName" class="form-label">Tytuł</label>
-        <input type="text" class="form-control" id="testName" required />
-      </div>
-      <div class="col-md-6">
-        <label for="testDesc" class="form-label">Opis</label>
-        <input type="text" class="form-control" id="testDesc" />
-      </div>
       <div class="col-md-6">
         <label for="testSteps" class="form-label">Kroki</label>
-        <textarea class="form-control" id="testSteps" rows="3"></textarea>
+        <textarea class="form-control" id="testSteps" rows="3 required"></textarea>
       </div>
       <div class="col-md-6">
         <label for="expectedResult" class="form-label">Oczekiwany rezultat</label>
-        <textarea class="form-control" id="expectedResult" rows="3"></textarea>
+        <textarea class="form-control" id="expectedResult" rows="3" required></textarea>
       </div>
       <div class="col-md-3">
         <label for="testStatus" class="form-label">Status</label>
-        <select class="form-select" id="testStatus">
+        <select class="form-select" id="testStatus" required>
           <option value="">Wybierz status</option>
           <option value="Pass">Pass</option>
           <option value="Fail">Fail</option>
@@ -254,6 +245,7 @@
 
 </body>
 </html>
+
 
 
 
