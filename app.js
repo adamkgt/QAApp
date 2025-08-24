@@ -1,3 +1,19 @@
+// ------------------- Toast -------------------
+function showToast(message, type='success') {
+    const toastEl = document.getElementById('appToast');
+    const toastMsg = document.getElementById('toastMessage');
+
+    if (!toastEl || !toastMsg) return;
+
+    // Ustaw kolor toastu
+    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+
+    toastMsg.textContent = message;
+
+    const bsToast = new bootstrap.Toast(toastEl, { delay: 3000 });
+    bsToast.show();
+}
+
 // ------------------- Inicjalizacja Firebase -------------------
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -5,50 +21,6 @@ let currentUser = null;
 let testCases = [];
 let sortKey = '';
 let sortAsc = true;
-
-// ------------------- Toasty -------------------
-function showToast(message, type = "info", autohide = true, withConfirm = false, onConfirm = null) {
-    const toastContainer = document.getElementById("toastContainer");
-    if (!toastContainer) return;
-
-    const toastEl = document.createElement("div");
-    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
-    toastEl.setAttribute("role", "alert");
-    toastEl.setAttribute("aria-live", "assertive");
-    toastEl.setAttribute("aria-atomic", "true");
-    toastEl.setAttribute("data-bs-autohide", autohide);
-
-    let bodyHTML = `<div class="d-flex"><div class="toast-body">${message}</div>`;
-    if (withConfirm) {
-        bodyHTML += `
-            <div class="ms-auto d-flex align-items-center">
-                <button class="btn btn-sm btn-light me-1" id="toastConfirmYes">Tak</button>
-                <button class="btn btn-sm btn-light" id="toastConfirmNo">Nie</button>
-            </div>`;
-    } else {
-        bodyHTML += `<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>`;
-    }
-    bodyHTML += `</div>`;
-    toastEl.innerHTML = bodyHTML;
-
-    toastContainer.appendChild(toastEl);
-
-    const toast = new bootstrap.Toast(toastEl, { delay: autohide ? 3000 : 0 });
-    toast.show();
-
-    if (withConfirm) {
-        toastEl.querySelector("#toastConfirmYes").addEventListener("click", () => {
-            toast.hide();
-            if (onConfirm) onConfirm(true);
-        });
-        toastEl.querySelector("#toastConfirmNo").addEventListener("click", () => {
-            toast.hide();
-            if (onConfirm) onConfirm(false);
-        });
-    }
-
-    toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
-}
 
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
@@ -228,12 +200,15 @@ function saveTestCase() {
     };
 
     const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    if (index === '') testCasesRef.doc(data.name).set(data).then(() => {
-        resetForm(); showToast('Test zapisany!', 'success');
-    }).catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
-    else testCasesRef.doc(index).update(data).then(() => {
-        resetForm(); showToast('Test zaktualizowany!', 'success');
-    }).catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+    if (index === '') {
+        testCasesRef.doc(data.name).set(data)
+            .then(() => { resetForm(); showToast('Test zapisany!', 'success'); })
+            .catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+    } else {
+        testCasesRef.doc(index).update(data)
+            .then(() => { resetForm(); showToast('Test zaktualizowany!', 'success'); })
+            .catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+    }
 }
 
 function editTestCase(id) {
@@ -250,22 +225,17 @@ function editTestCase(id) {
 }
 
 function deleteTestCase(id) {
-    showToast("Na pewno usunąć ten test?", "warning", false, true, (confirmed) => {
-        if (confirmed) {
-            db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete();
-            showToast("Test usunięty!", "success");
-        }
-    });
+    if (!confirm('Na pewno usunąć ten test?')) return;
+    db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete()
+        .then(() => showToast('Test usunięty!', 'success'))
+        .catch(err => showToast('Błąd usuwania: ' + err.message, 'danger'));
 }
 
 function deleteAllTestCases() {
-    showToast("Na pewno usunąć wszystkie testy?", "danger", false, true, (confirmed) => {
-        if (confirmed) {
-            const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-            testCases.forEach(tc => testCasesRef.doc(tc.id).delete());
-            showToast("Wszystkie testy usunięte!", "success");
-        }
-    });
+    if (!confirm('Na pewno usunąć wszystkie testy?')) return;
+    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
+    testCases.forEach(tc => testCasesRef.doc(tc.id).delete());
+    showToast('Wszystkie testy usunięte!', 'success');
 }
 
 function resetForm() {
@@ -360,7 +330,8 @@ function updateCharts() {
 // ------------------- Import / Export -------------------
 function importFromCSV() {
     const file = document.getElementById('csvFile').files[0];
-    if(!file) return;
+    if(!file) return showToast('Wybierz plik CSV!', 'warning');
+
     const reader = new FileReader();
     reader.onload = function(e){
         const lines = e.target.result.split('\n').filter(l=>l.trim()!=='');
@@ -372,7 +343,7 @@ function importFromCSV() {
             db.collection('Users').doc(currentUser.uid).collection('testCases').doc(data.name).set(data).catch(err=>console.error(err));
         });
         loadTestCases();
-        showToast('Import zakończony!', 'success');
+        showToast('Import CSV zakończony!', 'success');
     };
     reader.readAsText(file);
 }
@@ -388,7 +359,7 @@ function exportToCSV() {
     a.href=url;
     a.download='testcases.csv';
     a.click();
-    showToast("Eksport do CSV zakończony!", "success");
+    showToast('Eksport CSV zakończony!', 'success');
 }
 
 function exportToPDF() {
@@ -402,7 +373,7 @@ function exportToPDF() {
         styles:{cellPadding:2,fontSize:10}
     });
     doc.save('testcases.pdf');
-    showToast("Eksport do PDF zakończony!", "success");
+    showToast('Eksport PDF zakończony!', 'success');
 }
 
 // ------------------- Init -------------------
@@ -417,12 +388,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const csvFileInput = document.getElementById('csvFile');
     const importBtn = document.getElementById('importCSVBtn');
     if(importBtn && csvFileInput){
-        importBtn.addEventListener('click', ()=>{
-            if(!csvFileInput.files.length){ 
-                showToast('Wybierz plik CSV!', 'warning'); 
-                return; 
-            }
-            importFromCSV();
-        });
+        importBtn.addEventListener('click', ()=>{ importFromCSV(); });
     }
 });
