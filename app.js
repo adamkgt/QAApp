@@ -351,5 +351,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
     document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
+    document.getElementById('clearCSVFile')?.addEventListener('click', () => {
+    document.getElementById('csvFile').value = '';
     
 });
