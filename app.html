@@ -28,35 +28,36 @@
 <body class="bg-light">
 
   <!-- Navbar -->
-  <nav class="navbar navbar-dark bg-dark px-3">
-    <a class="navbar-brand d-flex align-items-center" href="#">
-      <i class="bi bi-shield-lock me-2"></i>
-      QA Test Management
-    </a>
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-dark px-3">
+  <a class="navbar-brand d-flex align-items-center" href="#">
+    <i class="bi bi-shield-lock me-2"></i>
+    QA Test Management
+  </a>
 
-    <div id="userPanel" class="ms-auto">
-      <!-- Domyślny avatar i email, JS nadpisze po zalogowaniu -->
-      <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
-        <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
-        <span id="userEmail">user@example.com</span>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
-        <li>
-          <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
-          <div id="avatarPreviewContainer" class="p-2 d-none">
-            <p class="mb-1 small">Podgląd nowego awatara:</p>
-            <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
-            <div class="mt-2 d-flex gap-2">
-              <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
-              <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
-            </div>
+  <div class="dropdown ms-auto" id="userPanel">
+    <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" role="button" data-bs-toggle="dropdown">
+      <img id="userAvatar" src="img/default-avatar.png" class="rounded-circle me-2" width="32" height="32" alt="Avatar" />
+      <span id="userEmail">user@example.com</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" href="#" id="editProfileBtn">Zmień hasło</a></li>
+      <li>
+        <a class="dropdown-item" href="#" id="changeAvatarBtn">Zmień awatar</a>
+        <div id="avatarPreviewContainer" class="p-2 d-none">
+          <p class="mb-1 small">Podgląd nowego awatara:</p>
+          <img id="avatarPreview" src="" class="rounded-circle" width="64" height="64" alt="Podgląd" />
+          <div class="mt-2 d-flex gap-2">
+            <button class="btn btn-sm btn-success" id="saveAvatarBtn">Zapisz</button>
+            <button class="btn btn-sm btn-secondary" id="cancelAvatarBtn">Anuluj</button>
           </div>
-        </li>
-        <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
-      </ul>
-    </div>
-  </nav>
+        </div>
+      </li>
+      <li><a class="dropdown-item text-danger" href="#" id="logoutBtnPanel">Wyloguj</a></li>
+    </ul>
+  </div>
+</nav>
+
 
   <!-- Główny kontener -->
   <div class="container py-4" id="mainContainer">
@@ -200,5 +201,6 @@
   </div>
 </body>
 </html>
+
 
 
