@@ -6,6 +6,50 @@ let testCases = [];
 let sortKey = '';
 let sortAsc = true;
 
+// ------------------- Toasty -------------------
+function showToast(message, type = "info", autohide = true, withConfirm = false, onConfirm = null) {
+    const toastContainer = document.getElementById("toastContainer");
+    if (!toastContainer) return;
+
+    const toastEl = document.createElement("div");
+    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+    toastEl.setAttribute("role", "alert");
+    toastEl.setAttribute("aria-live", "assertive");
+    toastEl.setAttribute("aria-atomic", "true");
+    toastEl.setAttribute("data-bs-autohide", autohide);
+
+    let bodyHTML = `<div class="d-flex"><div class="toast-body">${message}</div>`;
+    if (withConfirm) {
+        bodyHTML += `
+            <div class="ms-auto d-flex align-items-center">
+                <button class="btn btn-sm btn-light me-1" id="toastConfirmYes">Tak</button>
+                <button class="btn btn-sm btn-light" id="toastConfirmNo">Nie</button>
+            </div>`;
+    } else {
+        bodyHTML += `<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>`;
+    }
+    bodyHTML += `</div>`;
+    toastEl.innerHTML = bodyHTML;
+
+    toastContainer.appendChild(toastEl);
+
+    const toast = new bootstrap.Toast(toastEl, { delay: autohide ? 3000 : 0 });
+    toast.show();
+
+    if (withConfirm) {
+        toastEl.querySelector("#toastConfirmYes").addEventListener("click", () => {
+            toast.hide();
+            if (onConfirm) onConfirm(true);
+        });
+        toastEl.querySelector("#toastConfirmNo").addEventListener("click", () => {
+            toast.hide();
+            if (onConfirm) onConfirm(false);
+        });
+    }
+
+    toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+}
+
 // ------------------- Elementy DOM -------------------
 const testForm = document.getElementById("testForm");
 const statusFilter = document.getElementById("statusFilter");
@@ -24,18 +68,15 @@ function renderUserPanel() {
 
     if (!currentUser || !userPanelEmail || !userAvatar) return;
 
-    // Na starcie ukryj elementy
     userAvatar.style.opacity = 0;
     userPanelEmail.style.opacity = 0;
 
-    // Wczytaj dane z localStorage
     const savedEmail = localStorage.getItem('userEmail');
     const savedAvatar = localStorage.getItem('userAvatar');
 
     if (savedEmail) userPanelEmail.textContent = savedEmail;
     if (savedAvatar) userAvatar.src = savedAvatar;
 
-    // Pobierz dane z Firestore i zaktualizuj localStorage
     firebase.firestore().collection('Users').doc(currentUser.uid).get()
         .then(doc => {
             if (doc.exists) {
@@ -49,7 +90,6 @@ function renderUserPanel() {
                     localStorage.setItem('userEmail', currentUser.email);
                 }
             } else {
-                // Jeśli dokument nie istnieje, ustaw domyślny avatar
                 userAvatar.src = 'img/default-avatar.png';
                 userPanelEmail.textContent = currentUser.email || '';
                 firebase.firestore().collection('Users').doc(currentUser.uid).set({
@@ -65,25 +105,22 @@ function renderUserPanel() {
             userPanelEmail.textContent = currentUser.email || '';
         })
         .finally(() => {
-            // Pokaż elementy dopiero po załadowaniu danych
             userAvatar.style.opacity = 1;
             userPanelEmail.style.opacity = 1;
         });
 
-    // Zmiana hasła
     const editBtn = document.getElementById('editProfileBtn');
     if (editBtn) {
         editBtn.addEventListener('click', () => {
             const newPassword = prompt('Podaj nowe hasło:');
             if (newPassword) {
                 currentUser.updatePassword(newPassword)
-                    .then(() => alert('Hasło zmienione!'))
-                    .catch(err => alert('Błąd: ' + err.message));
+                    .then(() => showToast('Hasło zmienione!', 'success'))
+                    .catch(err => showToast('Błąd: ' + err.message, 'danger'));
             }
         });
     }
 
-    // Wylogowanie
     const logoutBtn = document.getElementById('logoutBtnPanel');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -95,7 +132,6 @@ function renderUserPanel() {
         });
     }
 
-    // Zmiana awatara
     let selectedFile = null;
     if (changeAvatarBtn) {
         changeAvatarBtn.addEventListener('click', () => {
@@ -150,7 +186,7 @@ function renderUserPanel() {
                     }, { merge: true });
                     localStorage.setItem('userAvatar', dataURL);
 
-                    alert('Awatar został zmieniony!');
+                    showToast('Awatar został zmieniony!', 'success');
                 };
                 img.src = e.target.result;
             };
@@ -158,7 +194,6 @@ function renderUserPanel() {
         });
     }
 }
-
 
 // ------------------- Ochrona strony i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
@@ -193,8 +228,12 @@ function saveTestCase() {
     };
 
     const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    if (index === '') testCasesRef.doc(data.name).set(data).then(() => resetForm()).catch(err => alert('Błąd zapisu: ' + err.message));
-    else testCasesRef.doc(index).update(data).then(() => resetForm()).catch(err => alert('Błąd zapisu: ' + err.message));
+    if (index === '') testCasesRef.doc(data.name).set(data).then(() => {
+        resetForm(); showToast('Test zapisany!', 'success');
+    }).catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
+    else testCasesRef.doc(index).update(data).then(() => {
+        resetForm(); showToast('Test zaktualizowany!', 'success');
+    }).catch(err => showToast('Błąd zapisu: ' + err.message, 'danger'));
 }
 
 function editTestCase(id) {
@@ -211,14 +250,22 @@ function editTestCase(id) {
 }
 
 function deleteTestCase(id) {
-    if (!confirm('Na pewno usunąć ten test?')) return;
-    db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete();
+    showToast("Na pewno usunąć ten test?", "warning", false, true, (confirmed) => {
+        if (confirmed) {
+            db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete();
+            showToast("Test usunięty!", "success");
+        }
+    });
 }
 
 function deleteAllTestCases() {
-    if (!confirm('Na pewno usunąć wszystkie testy?')) return;
-    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    testCases.forEach(tc => testCasesRef.doc(tc.id).delete());
+    showToast("Na pewno usunąć wszystkie testy?", "danger", false, true, (confirmed) => {
+        if (confirmed) {
+            const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
+            testCases.forEach(tc => testCasesRef.doc(tc.id).delete());
+            showToast("Wszystkie testy usunięte!", "success");
+        }
+    });
 }
 
 function resetForm() {
@@ -325,7 +372,7 @@ function importFromCSV() {
             db.collection('Users').doc(currentUser.uid).collection('testCases').doc(data.name).set(data).catch(err=>console.error(err));
         });
         loadTestCases();
-        alert('Import zakończony!');
+        showToast('Import zakończony!', 'success');
     };
     reader.readAsText(file);
 }
@@ -341,6 +388,7 @@ function exportToCSV() {
     a.href=url;
     a.download='testcases.csv';
     a.click();
+    showToast("Eksport do CSV zakończony!", "success");
 }
 
 function exportToPDF() {
@@ -354,6 +402,7 @@ function exportToPDF() {
         styles:{cellPadding:2,fontSize:10}
     });
     doc.save('testcases.pdf');
+    showToast("Eksport do PDF zakończony!", "success");
 }
 
 // ------------------- Init -------------------
@@ -369,7 +418,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const importBtn = document.getElementById('importCSVBtn');
     if(importBtn && csvFileInput){
         importBtn.addEventListener('click', ()=>{
-            if(!csvFileInput.files.length){ alert('Wybierz plik CSV!'); return; }
+            if(!csvFileInput.files.length){ 
+                showToast('Wybierz plik CSV!', 'warning'); 
+                return; 
+            }
             importFromCSV();
         });
     }
