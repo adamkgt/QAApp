@@ -30,26 +30,17 @@ function showToast(message, type = 'success', duration = 3000) {
     `;
     toastRoot.appendChild(toast);
 
-    // Obsługa przycisku zamykania
     const closeBtn = toast.querySelector('.btn-close');
     closeBtn.addEventListener('click', () => hideToast(toast));
 
-    // Animacja wjazdu
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
-    });
+    requestAnimationFrame(() => { toast.classList.add('show'); });
 
-    // Automatyczne ukrycie po czasie
-    setTimeout(() => {
-        hideToast(toast);
-    }, duration);
+    setTimeout(() => { hideToast(toast); }, duration);
 
     function hideToast(toastEl) {
         toastEl.classList.remove('show');
         toastEl.classList.add('hide');
-        toastEl.addEventListener('transitionend', () => {
-            toastEl.remove();
-        }, { once: true });
+        toastEl.addEventListener('transitionend', () => toastEl.remove(), { once: true });
     }
 }
 
@@ -68,25 +59,16 @@ function renderUserPanel() {
     userAvatar.style.opacity = 0;
     userPanelEmail.style.opacity = 0;
 
-    const savedEmail = localStorage.getItem('userEmail');
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedEmail) userPanelEmail.textContent = savedEmail;
-    if (savedAvatar) userAvatar.src = savedAvatar;
-
     db.collection('Users').doc(currentUser.uid).get()
         .then(doc => {
             if (doc.exists) {
                 const data = doc.data();
                 if (data.avatar) userAvatar.src = data.avatar;
                 if (currentUser.email) userPanelEmail.textContent = currentUser.email;
-                localStorage.setItem('userAvatar', data.avatar || '');
-                localStorage.setItem('userEmail', currentUser.email || '');
             } else {
                 userAvatar.src = 'img/default-avatar.png';
                 userPanelEmail.textContent = currentUser.email || '';
                 db.collection('Users').doc(currentUser.uid).set({ avatar: 'img/default-avatar.png' });
-                localStorage.setItem('userAvatar', 'img/default-avatar.png');
-                localStorage.setItem('userEmail', currentUser.email || '');
             }
         })
         .finally(() => {
@@ -94,91 +76,74 @@ function renderUserPanel() {
             userPanelEmail.style.opacity = 1;
         });
 
-    // Zmiana hasła
-    const editBtn = document.getElementById('editProfileBtn');
-    if (editBtn) {
-        editBtn.addEventListener('click', () => {
-            const newPassword = prompt('Podaj nowe hasło:');
-            if (newPassword) {
-                currentUser.updatePassword(newPassword)
-                    .then(() => showToast('Hasło zmienione!', 'success'))
-                    .catch(err => showToast('Błąd: ' + err.message, 'danger'));
-            }
-        });
-    }
+    document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+        const newPassword = prompt('Podaj nowe hasło:');
+        if (newPassword) {
+            currentUser.updatePassword(newPassword)
+                .then(() => showToast('Hasło zmienione!', 'success'))
+                .catch(err => showToast('Błąd: ' + err.message, 'danger'));
+        }
+    });
 
-    // Wylogowanie
-    const logoutBtn = document.getElementById('logoutBtnPanel');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userAvatar');
-                window.location.href = 'index.html';
-            });
+    document.getElementById('logoutBtnPanel')?.addEventListener('click', () => {
+        auth.signOut().then(() => {
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userAvatar');
+            window.location.href = 'index.html';
         });
-    }
+    });
 
-    // Zmiana awatara
     let selectedFile = null;
-    if (changeAvatarBtn) {
-        changeAvatarBtn.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.click();
-            input.onchange = () => {
-                selectedFile = input.files[0];
-                if (!selectedFile) return;
-                const reader = new FileReader();
-                reader.onload = e => {
-                    avatarPreview.src = e.target.result;
-                    avatarPreviewContainer.classList.remove('d-none');
-                };
-                reader.readAsDataURL(selectedFile);
-            };
-        });
-    }
-
-    if (cancelAvatarBtn) {
-        cancelAvatarBtn.addEventListener('click', () => {
-            avatarPreviewContainer.classList.add('d-none');
-            avatarPreview.src = '';
-            selectedFile = null;
-        });
-    }
-
-    if (saveAvatarBtn) {
-        saveAvatarBtn.addEventListener('click', () => {
+    changeAvatarBtn?.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.click();
+        input.onchange = () => {
+            selectedFile = input.files[0];
             if (!selectedFile) return;
             const reader = new FileReader();
             reader.onload = e => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64;
-                    canvas.height = 64;
-                    const ctx = canvas.getContext('2d');
-                    const size = Math.min(img.width, img.height);
-                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 64, 64);
-                    const dataURL = canvas.toDataURL('image/png');
-                    userAvatar.src = dataURL;
-                    avatarPreviewContainer.classList.add('d-none');
-                    selectedFile = null;
-                    db.collection('Users').doc(currentUser.uid).set({ avatar: dataURL }, { merge: true });
-                    localStorage.setItem('userAvatar', dataURL);
-                    showToast('Awatar został zmieniony!', 'success');
-                };
-                img.src = e.target.result;
+                avatarPreview.src = e.target.result;
+                avatarPreviewContainer.classList.remove('d-none');
             };
             reader.readAsDataURL(selectedFile);
-        });
-    }
+        };
+    });
+
+    cancelAvatarBtn?.addEventListener('click', () => {
+        avatarPreviewContainer.classList.add('d-none');
+        avatarPreview.src = '';
+        selectedFile = null;
+    });
+
+    saveAvatarBtn?.addEventListener('click', () => {
+        if (!selectedFile) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64; canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                const size = Math.min(img.width, img.height);
+                ctx.drawImage(img, (img.width - size)/2, (img.height - size)/2, size, size, 0, 0, 64, 64);
+                const dataURL = canvas.toDataURL('image/png');
+                userAvatar.src = dataURL;
+                avatarPreviewContainer.classList.add('d-none');
+                selectedFile = null;
+                db.collection('Users').doc(currentUser.uid).set({ avatar: dataURL }, { merge: true });
+                showToast('Awatar został zmieniony!', 'success');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(selectedFile);
+    });
 }
 
 // ------------------- Auth i ładowanie danych -------------------
 auth.onAuthStateChanged(user => {
-    if (!user) window.location.href = "index.html";
+    if (!user) window.location.href = 'index.html';
     else {
         currentUser = user;
         renderUserPanel();
@@ -187,220 +152,131 @@ auth.onAuthStateChanged(user => {
 });
 
 // ------------------- CRUD -------------------
-function loadTestCases(){
-    db.collection('Users').doc(currentUser.uid).collection('testCases')
-      .onSnapshot(snapshot=>{
-          testCases = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
-          renderTable();
-      }, err=>console.error(err));
+function loadTestCases() {
+    const data = localStorage.getItem('testCases');
+    testCases = data ? JSON.parse(data) : [];
+    renderTable();
 }
 
-function saveTestCase(){
+function saveTestCase() {
     const index = document.getElementById('editIndex').value;
-    const data = {
-        name: document.getElementById('testName').value,
+    const t = {
+        title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
-        priority: document.getElementById('testPriority').value,
-        history:[`${index===''?'Utworzono':'Edytowano'}: ${new Date().toLocaleString()}`]
+        priority: document.getElementById('testPriority').value
     };
-    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    if(index==='') testCasesRef.doc(data.name).set(data)
-        .then(()=>{ resetForm(); showToast('Test dodany!','success'); })
-        .catch(err=>showToast('Błąd zapisu: '+err.message,'danger'));
-    else testCasesRef.doc(index).update(data)
-        .then(()=>{ resetForm(); showToast('Test zaktualizowany!','success'); })
-        .catch(err=>showToast('Błąd zapisu: '+err.message,'danger'));
-}
-
-function editTestCase(id){
-    const tc = testCases.find(tc=>tc.id===id);
-    if(!tc) return;
-    document.getElementById('editIndex').value = tc.id;
-    document.getElementById('testName').value = tc.name;
-    document.getElementById('testDesc').value = tc.desc;
-    document.getElementById('testSteps').value = tc.steps;
-    document.getElementById('expectedResult').value = tc.expected;
-    document.getElementById('testStatus').value = tc.status;
-    document.getElementById('testNotes').value = tc.notes;
-    document.getElementById('testPriority').value = tc.priority;
-}
-
-function deleteTestCase(id){
-    if(!confirm('Na pewno usunąć ten test?')) return;
-    db.collection('Users').doc(currentUser.uid).collection('testCases').doc(id).delete()
-        .then(()=>showToast('Test usunięty!','success'))
-        .catch(err=>showToast('Błąd usuwania: '+err.message,'danger'));
-}
-
-function deleteAllTestCases(){
-    if(!confirm('Na pewno usunąć wszystkie testy?')) return;
-    const testCasesRef = db.collection('Users').doc(currentUser.uid).collection('testCases');
-    const batch = db.batch();
-    testCases.forEach(tc=>{
-        const docRef = testCasesRef.doc(tc.id);
-        batch.delete(docRef);
-    });
-    batch.commit()
-        .then(()=>showToast('Wszystkie testy usunięte!','success'))
-        .catch(err=>showToast('Błąd usuwania: '+err.message,'danger'));
-}
-
-function resetForm(){
-    if(!testForm) return;
-    testForm.reset();
-    document.getElementById('editIndex').value='';
-}
-
-// ------------------- Filtry i sortowanie -------------------
-function clearFilters(){
-    statusFilter.value='all';
-    priorityFilter.value='all';
-    searchQuery.value='';
+    if (index) testCases[index] = t;
+    else testCases.push(t);
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    resetForm();
     renderTable();
+    showToast('Test zapisany!', 'success');
 }
 
-function applyFilters(data){
-    const status = statusFilter.value;
-    const priority = priorityFilter.value;
-    const query = searchQuery.value.toLowerCase();
-    return data.filter(tc=>{
-        if(status!=='all' && tc.status!==status) return false;
-        if(priority!=='all' && tc.priority!==priority) return false;
-        if(query && ![tc.name,tc.desc,tc.steps,tc.expected].some(f=>f.toLowerCase().includes(query))) return false;
-        return true;
-    });
+function resetForm() {
+    document.getElementById('testForm').reset();
+    document.getElementById('editIndex').value = '';
 }
 
-function sortBy(key){
-    if(sortKey===key) sortAsc=!sortAsc;
-    else { sortKey=key; sortAsc=true; }
+function deleteTestCase(i) {
+    if (!confirm('Usunąć ten test?')) return;
+    testCases.splice(i,1);
+    localStorage.setItem('testCases', JSON.stringify(testCases));
     renderTable();
+    showToast('Test usunięty!', 'warning');
 }
 
-// ------------------- Renderowanie tabeli i statystyk -------------------
-let statusChart;
-function renderTable(){
-    let data = applyFilters([...testCases]);
-    if(sortKey) data.sort((a,b)=>(a[sortKey]||'').localeCompare(b[sortKey]||'')*(sortAsc?1:-1));
+function deleteAllTestCases() {
+    if (!confirm('Usunąć wszystkie testy?')) return;
+    testCases = [];
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    renderTable();
+    showToast('Wszystkie testy usunięte!', 'warning');
+}
 
+function editTestCase(i) {
+    const t = testCases[i];
+    document.getElementById('testName').value = t.title;
+    document.getElementById('testDesc').value = t.desc;
+    document.getElementById('testSteps').value = t.steps;
+    document.getElementById('expectedResult').value = t.expected;
+    document.getElementById('testStatus').value = t.status;
+    document.getElementById('testNotes').value = t.notes;
+    document.getElementById('testPriority').value = t.priority;
+    document.getElementById('editIndex').value = i;
+}
+
+// ------------------- Render i Filtry -------------------
+function renderTable() {
     const tbody = document.querySelector('#testTable tbody');
-    if(!tbody) return;
-    tbody.innerHTML='';
-    data.forEach(tc=>{
+    tbody.innerHTML = '';
+    testCases.forEach((t,i)=>{
         const tr = document.createElement('tr');
-        tr.innerHTML=`
-        <td>${tc.name}</td>
-        <td>${tc.desc}</td>
-        <td>${tc.steps}</td>
-        <td>${tc.expected}</td>
-        <td>${tc.status}</td>
-        <td>${tc.notes}</td>
-        <td>${tc.priority}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="editTestCase('${tc.id}')">Edytuj</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${tc.id}')">Usuń</button>
-        </td>`;
+        tr.innerHTML = `
+            <td>${t.title}</td>
+            <td>${t.desc}</td>
+            <td>${t.steps}</td>
+            <td>${t.expected}</td>
+            <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
+            <td>${t.notes}</td>
+            <td>${t.priority}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${i})">Usuń</button>
+            </td>
+        `;
         tbody.appendChild(tr);
     });
-
-    updateStats();
-    updateCharts();
-}
-
-function countStats(){
-    let pass=0, fail=0, unknown=0;
-    testCases.forEach(tc=>{ if(tc.status==='Pass') pass++; else if(tc.status==='Fail') fail++; else unknown++; });
-    return {pass,fail,unknown};
-}
-
-function updateStats(){
-    const {pass,fail,unknown} = countStats();
-    const total = testCases.length || 1;
-    document.getElementById('barPass').style.width=(pass/total*100)+'%';
-    document.getElementById('barFail').style.width=(fail/total*100)+'%';
-    document.getElementById('barUnknown').style.width=(unknown/total*100)+'%';
-}
-
-function updateCharts(){
-    const {pass,fail,unknown} = countStats();
-    if(!statusChart && document.getElementById('statusChart')){
-        statusChart = new Chart(document.getElementById('statusChart'),{
-            type:'doughnut',
-            data:{ labels:['Pass','Fail','Brak'], datasets:[{data:[pass,fail,unknown], backgroundColor:['#4caf50','#f44336','#9e9e9e']}]}
-        });
-    } else if(statusChart){
-        statusChart.data.datasets[0].data=[pass,fail,unknown];
-        statusChart.update();
-    }
 }
 
 // ------------------- Import / Export CSV -------------------
-function importFromCSV(file){
+function importFromCSV() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) return showToast('Wybierz plik CSV', 'warning');
     const reader = new FileReader();
-    reader.onload = e=>{
-        const lines = e.target.result.split(/\r?\n/);
+    reader.onload = e => {
+        const lines = e.target.result.split('\n');
         lines.forEach(line=>{
-            const [name,desc,steps,expected,status,notes,priority] = line.split(',');
-            if(name) db.collection('Users').doc(currentUser.uid).collection('testCases').doc(name).set({name,desc,steps,expected,status,notes,priority});
+            const [title,desc,steps,expected,status,notes,priority] = line.split(',');
+            if(title) testCases.push({title,desc,steps,expected,status,notes,priority});
         });
-        showToast('CSV zaimportowane!','success');
+        localStorage.setItem('testCases', JSON.stringify(testCases));
+        renderTable();
+        showToast('CSV zaimportowane!', 'success');
     };
     reader.readAsText(file);
 }
 
-document.getElementById('importCSVBtn').addEventListener('click',()=>{
-    const fileInput = document.getElementById('csvFile');
-    if(fileInput.files.length===0){ showToast('Wybierz plik CSV','warning'); return; }
-    importFromCSV(fileInput.files[0]);
-});
-
-function exportToCSV(){
-    let csvContent = "data:text/csv;charset=utf-8,";
-    testCases.forEach(tc=>{
-        csvContent += [tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority].join(',')+"\n";
+function exportToCSV() {
+    let csv = 'Tytuł,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n';
+    testCases.forEach(t=>{
+        csv+=`${t.title},${t.desc},${t.steps},${t.expected},${t.status},${t.notes},${t.priority}\n`;
     });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'test_cases.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('CSV wyeksportowane!','success');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'testCases.csv';
+    a.click();
+    showToast('CSV wyeksportowane!', 'success');
 }
 
-function exportToPDF(){
+function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const columns = ["Tytuł","Opis","Kroki","Oczekiwany","Status","Uwagi","Priorytet"];
-    const rows = testCases.map(tc=>[tc.name,tc.desc,tc.steps,tc.expected,tc.status,tc.notes,tc.priority]);
-    doc.autoTable({ head:[columns], body:rows });
-    doc.save('test_cases.pdf');
-    showToast('PDF wyeksportowane!','success');
+    doc.text('Test Cases', 10, 10);
+    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']], body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
+    doc.save('testCases.pdf');
+    showToast('PDF wyeksportowane!', 'success');
 }
 
-
 // ------------------- Init -------------------
-document.addEventListener('DOMContentLoaded', () => {
-    const testForm = document.getElementById('testForm');
-    if (testForm) testForm.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
-
-    const statusFilter = document.getElementById('statusFilter');
-    const priorityFilter = document.getElementById('priorityFilter');
-    const searchQuery = document.getElementById('searchQuery');
-    if (statusFilter && priorityFilter && searchQuery) {
-        statusFilter.addEventListener('change', renderTable);
-        priorityFilter.addEventListener('change', renderTable);
-        searchQuery.addEventListener('input', renderTable);
-    }
-
-    const importBtn = document.getElementById('importCSVBtn');
-    const csvFileInput = document.getElementById('csvFile');
-    if (importBtn && csvFileInput) {
-        importBtn.addEventListener('click', () => importFromCSV());
-    }
+document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('testForm')?.addEventListener('submit', e=>{ e.preventDefault(); saveTestCase(); });
+    document.getElementById('statusFilter')?.addEventListener('change', renderTable);
+    document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
+    document.getElementById('searchQuery')?.addEventListener('input', renderTable);
+    document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
 });
