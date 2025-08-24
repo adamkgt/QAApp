@@ -7,25 +7,21 @@ let sortKey = '';
 let sortAsc = true;
 
 // ------------------- Toast -------------------
-function showToast(message, type = 'success', duration = 3000) {
+function showToast(message, type='success', duration=3000) {
     let toastRoot = document.getElementById('toastRoot');
     if (!toastRoot) {
         toastRoot = document.createElement('div');
         toastRoot.id = 'toastRoot';
         toastRoot.style.position = 'fixed';
-        toastRoot.style.top = '1rem';
-        toastRoot.style.right = '1rem';
+        toastRoot.style.top = '0';
+        toastRoot.style.right = '0';
+        toastRoot.style.padding = '1rem';
         toastRoot.style.zIndex = 1100;
-        toastRoot.style.pointerEvents = 'none';
         document.body.appendChild(toastRoot);
     }
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(120%)';
-    toast.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
-    toast.style.pointerEvents = 'auto';
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
@@ -34,23 +30,17 @@ function showToast(message, type = 'success', duration = 3000) {
     `;
     toastRoot.appendChild(toast);
 
-    // Wywołanie animacji wjazdu
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(0)';
-    }, 50);
+    // Animacja wjazdu
+    setTimeout(()=> toast.classList.add('show'), 50);
 
-    // Zamknięcie po kliknięciu
-    toast.querySelector('.btn-close').addEventListener('click', () => hideToast(toast));
+    const hide = () => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        toast.addEventListener('transitionend', () => toast.remove(), {once:true});
+    };
 
-    // Automatyczne zamknięcie
-    setTimeout(() => hideToast(toast), duration);
-
-    function hideToast(t) {
-        t.style.opacity = '0';
-        t.style.transform = 'translateX(120%)';
-        t.addEventListener('transitionend', () => t.remove(), { once: true });
-    }
+    toast.querySelector('.btn-close').addEventListener('click', hide);
+    setTimeout(hide, duration);
 }
 
 // ------------------- Panel użytkownika -------------------
@@ -223,17 +213,7 @@ function editTestCase(i) {
 function renderTable() {
     const tbody = document.querySelector('#testTable tbody');
     tbody.innerHTML = '';
-    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-    const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
-    const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
-
     testCases.forEach((t,i)=>{
-        if ((statusFilter !== 'all' && t.status !== statusFilter) ||
-            (statusFilter === 'unknown' && t.status) ||
-            (priorityFilter !== 'all' && t.priority !== priorityFilter)) return;
-
-        if (searchQuery && ![t.title,t.desc,t.steps,t.expected,t.notes].some(f=>f.toLowerCase().includes(searchQuery))) return;
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${t.title}</td>
