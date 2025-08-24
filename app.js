@@ -298,29 +298,49 @@ function updateStats() {
 
 // ------------------- Import / Export CSV -------------------
 // Funkcja czyszczenia pola pliku
-function clearCSVFile() {
-  const oldInput = document.getElementById('csvFile');
-  oldInput.value = ''; // usuwa wybrany plik
-}
-
 function importFromCSV() {
-    const file = document.getElementById('csvFile').files[0];
-    if (!file) return showToast('Wybierz plik CSV', 'warning');
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showToast('Wybierz plik CSV do importu.', 'warning');
+        return;
+    }
+
+    // Sprawdzenie rozszerzenia
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        showToast('Nieprawidłowy typ pliku. Wybierz plik CSV.', 'danger');
+        fileInput.value = ''; // reset pola pliku
+        return;
+    }
+
     const reader = new FileReader();
     reader.onload = e => {
         const lines = e.target.result.split('\n');
-        lines.forEach(line=>{
-            const [title,desc,steps,expected,status,notes,priority] = line.split(',');
-            if(title) testCases.push({title,desc,steps,expected,status,notes,priority});
+        let addedCount = 0;
+
+        lines.forEach(line => {
+            const [title, desc, steps, expected, status, notes, priority] = line.split(',');
+            if (title) {
+                testCases.push({ title, desc, steps, expected, status, notes, priority });
+                addedCount++;
+            }
         });
-        localStorage.setItem('testCases', JSON.stringify(testCases));
-        renderTable();
-        importCount++;
-        showToast('CSV zaimportowane!', 'success');
-        updateStats();
+
+        if (addedCount > 0) {
+            localStorage.setItem('testCases', JSON.stringify(testCases));
+            renderTable();
+            importCount++;
+            showToast(`Zaimportowano ${addedCount} testów z CSV.`, 'success');
+            updateStats();
+        } else {
+            showToast('Plik CSV jest pusty lub niepoprawny.', 'warning');
+        }
     };
+
     reader.readAsText(file);
 }
+
 
 function exportToCSV() {
     let csv = 'Tytuł,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n';
