@@ -157,31 +157,34 @@ auth.onAuthStateChanged(user => {
 
 // ------------------- CRUD -------------------
 function loadTestCases() {
-    // Pobierz tylko testy przypisane do aktualnego użytkownika
     db.collection('TestCases')
       .where('uid', '==', currentUser.uid)
       .get()
       .then(snapshot => {
-        testCases = snapshot.docs.map(doc => doc.data());
-        renderTable();
-        updateStats();
-      });
+          testCases = snapshot.docs.map(doc => doc.data());
+          renderTable();
+          updateStats();
+      })
+      .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 }
+
 
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
+
+    // Generowanie ID, jeśli nowy test case
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
         id: id,
-        uid: currentUser.uid,
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
-        priority: document.getElementById('testPriority').value
+        priority: document.getElementById('testPriority').value,
+        uid: currentUser.uid   // <-- dodaj UID
     };
 
     if(index) {
@@ -190,9 +193,11 @@ function saveTestCase() {
         testCases.push(t);
     }
 
+    // zapis do localStorage
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
-    db.collection('TestCases').doc(id).set(t)
+    // zapis do Firebase (dokument ID = t.id)
+    db.collection('TestCases').doc(t.id).set(t)
       .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
@@ -200,6 +205,7 @@ function saveTestCase() {
     renderTable();
     updateStats();
 }
+
 
 function resetForm() {
     document.getElementById('testForm').reset();
