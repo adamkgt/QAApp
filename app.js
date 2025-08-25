@@ -161,36 +161,52 @@ function loadTestCases() {
     if (!currentUser) return;
 
     db.collection('TestCases')
-      .where('uid', '==', currentUser.uid)
-      .orderBy('timestamp', 'desc')
+      .where('uid', '==', currentUser.uid) // tylko własne testy
+      .orderBy('createdAt', 'desc')        // posortowane po dacie utworzenia
       .get()
       .then(snapshot => {
-          testCases = snapshot.docs.map(doc => doc.data());
+          testCases = [];
+          snapshot.forEach(doc => {
+              const data = doc.data();
+              testCases.push({
+                  id: data.id || doc.id,
+                  uid: data.uid,
+                  title: data.title || '',
+                  desc: data.desc || '',
+                  steps: data.steps || '',
+                  expected: data.expected || '',
+                  status: data.status || '',
+                  notes: data.notes || '',
+                  priority: data.priority || '',
+                  createdAt: data.createdAt ? data.createdAt.toDate() : null, // konwersja timestamp
+                  updatedAt: data.updatedAt ? data.updatedAt.toDate() : null  // jeśli będzie aktualizowane
+              });
+          });
 
-          // Zapisz też w localStorage dla offline
+          // Zapis lokalny
           localStorage.setItem('testCases', JSON.stringify(testCases));
 
+          // Aktualizacja UI
           renderTable();
           updateStats();
       })
       .catch(err => {
           console.error('Błąd wczytywania testów z Firebase:', err);
-          // fallback na localStorage
-          const data = localStorage.getItem('testCases');
-          testCases = data ? JSON.parse(data) : [];
-          renderTable();
-          updateStats();
+          showToast('Błąd wczytywania testów z Firebase: ' + err.message, 'danger');
       });
 }
 
 
+
 // ------------------- Save Test Case -------------------
-function saveTestCase(source = 'manual') {
+function saveTestCase() {
     const index = document.getElementById('editIndex').value;
+
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
         id: id,
+        uid: currentUser.uid,       // <- tutaj UID użytkownika
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -198,39 +214,19 @@ function saveTestCase(source = 'manual') {
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if(index) {
-        // Edycja istniejącego test case
-        const old = testCases[index];
-        const changes = [];
-        for(const key of ['title','desc','steps','expected','status','notes','priority']) {
-            if(old[key] !== t[key]) changes.push(key);
-        }
-        t.history = old.history || [];
-        if(changes.length > 0) {
-            t.history.push({ date: new Date(), changes, action: 'Edycja' });
-        }
-        t.createdAt = old.createdAt || firebase.firestore.FieldValue.serverTimestamp();
         testCases[index] = t;
     } else {
-        // Nowy test case
-        t.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        t.history = [{
-            date: new Date(),
-            action: source === 'import' ? 'Zaimportowano' : 'Utworzono',
-            changes: ['all']
-        }];
         testCases.push(t);
     }
 
-    // Zapis lokalny
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
-    // Zapis do Firebase
     db.collection('TestCases').doc(t.id).set(t)
-      .then(() => showToast(`Test ${source === 'import' ? 'zaimportowany' : 'utworzony'} w Firebase!`, 'success'))
+      .then(() => showToast('Test zapisany Pomyślnie!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
     resetForm();
