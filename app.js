@@ -185,7 +185,7 @@ function loadTestCases() {
 
 
 // ------------------- Save Test Case -------------------
-function saveTestCase() {
+function saveTestCase(source = 'manual') {
     const index = document.getElementById('editIndex').value;
     const id = document.getElementById('testID').value || Date.now().toString();
 
@@ -210,14 +210,18 @@ function saveTestCase() {
         }
         t.history = old.history || [];
         if(changes.length > 0) {
-            t.history.push({ date: new Date(), changes });
+            t.history.push({ date: new Date(), changes, action: 'Edycja' });
         }
         t.createdAt = old.createdAt || firebase.firestore.FieldValue.serverTimestamp();
         testCases[index] = t;
     } else {
         // Nowy test case
         t.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        t.history = [];
+        t.history = [{
+            date: new Date(),
+            action: source === 'import' ? 'Zaimportowano' : 'Utworzono',
+            changes: ['all']
+        }];
         testCases.push(t);
     }
 
@@ -226,13 +230,14 @@ function saveTestCase() {
 
     // Zapis do Firebase
     db.collection('TestCases').doc(t.id).set(t)
-      .then(() => showToast('Test zapisany w Firebase!', 'success'))
+      .then(() => showToast(`Test ${source === 'import' ? 'zaimportowany' : 'utworzony'} w Firebase!`, 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
     resetForm();
     renderTable();
     updateStats();
 }
+
 
 function resetForm() {
     document.getElementById('testForm').reset();
