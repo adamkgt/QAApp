@@ -155,20 +155,36 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// ------------------- CRUD -------------------
+
+// ------------------- Load Test Cases -------------------
 function loadTestCases() {
+    if (!currentUser) return;
+
     db.collection('TestCases')
       .where('uid', '==', currentUser.uid)
+      .orderBy('timestamp', 'desc')
       .get()
       .then(snapshot => {
           testCases = snapshot.docs.map(doc => doc.data());
+
+          // Zapisz też w localStorage dla offline
+          localStorage.setItem('testCases', JSON.stringify(testCases));
+
           renderTable();
           updateStats();
       })
-      .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
+      .catch(err => {
+          console.error('Błąd wczytywania testów z Firebase:', err);
+          // fallback na localStorage
+          const data = localStorage.getItem('testCases');
+          testCases = data ? JSON.parse(data) : [];
+          renderTable();
+          updateStats();
+      });
 }
 
 
+// ------------------- Save Test Case -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
 
@@ -177,6 +193,7 @@ function saveTestCase() {
 
     const t = {
         id: id,
+        uid: currentUser.uid,               // powiązanie z użytkownikiem
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -184,19 +201,19 @@ function saveTestCase() {
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        uid: currentUser.uid   // <-- dodaj UID
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if(index) {
         testCases[index] = t;
     } else {
-        testCases.push(t);
+        testCases.unshift(t); // dodajemy na początek, najnowsze na górze
     }
 
     // zapis do localStorage
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
-    // zapis do Firebase (dokument ID = t.id)
+    // zapis do Firebase (kolekcja 'TestCases', dokument ID = t.id)
     db.collection('TestCases').doc(t.id).set(t)
       .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
@@ -205,7 +222,6 @@ function saveTestCase() {
     renderTable();
     updateStats();
 }
-
 
 function resetForm() {
     document.getElementById('testForm').reset();
