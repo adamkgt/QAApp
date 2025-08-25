@@ -187,13 +187,10 @@ function loadTestCases() {
 // ------------------- Save Test Case -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
-
-    // Generowanie ID, jeśli nowy test case
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
         id: id,
-        uid: currentUser.uid,               // powiązanie z użytkownikiem
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -201,19 +198,33 @@ function saveTestCase() {
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if(index) {
+        // Edycja istniejącego test case
+        const old = testCases[index];
+        const changes = [];
+        for(const key of ['title','desc','steps','expected','status','notes','priority']) {
+            if(old[key] !== t[key]) changes.push(key);
+        }
+        t.history = old.history || [];
+        if(changes.length > 0) {
+            t.history.push({ date: new Date(), changes });
+        }
+        t.createdAt = old.createdAt || firebase.firestore.FieldValue.serverTimestamp();
         testCases[index] = t;
     } else {
-        testCases.unshift(t); // dodajemy na początek, najnowsze na górze
+        // Nowy test case
+        t.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        t.history = [];
+        testCases.push(t);
     }
 
-    // zapis do localStorage
+    // Zapis lokalny
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
-    // zapis do Firebase (kolekcja 'TestCases', dokument ID = t.id)
+    // Zapis do Firebase
     db.collection('TestCases').doc(t.id).set(t)
       .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
@@ -273,37 +284,73 @@ function editTestCase(i) {
 
 // ------------------- Render tabeli -------------------
 function renderTable() {
-  const tbody = document.querySelector('#testTable tbody');
-  if(!tbody) return;
-  tbody.innerHTML = '';
+    const tbody = document.querySelector('#testTable tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
 
-  const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-  const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
-  const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+    const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
 
-  testCases.forEach((t, i) => {
-    if(statusFilter !== 'all' && ((t.status || 'unknown') !== statusFilter)) return;
-    if(priorityFilter !== 'all' && (t.priority || '') !== priorityFilter) return;
-    if(searchQuery && ![t.title, t.desc, t.steps, t.expected, t.notes].some(s=>s.toLowerCase().includes(searchQuery))) return;
+    testCases.forEach((t, i) => {
+        if(statusFilter !== 'all' && ((t.status || 'unknown') !== statusFilter)) return;
+        if(priorityFilter !== 'all' && (t.priority || '') !== priorityFilter) return;
+        if(searchQuery && ![t.title, t.desc, t.steps, t.expected, t.notes].some(s=>s.toLowerCase().includes(searchQuery))) return;
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
-      <td>${t.id || ''}</td>
-      <td>${t.title}</td>
-      <td>${t.desc}</td>
-      <td>${t.steps}</td>
-      <td>${t.expected}</td>
-      <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
-      <td>${t.notes}</td>
-      <td>${t.priority}</td>
-      <td>
-        <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${i})">Usuń</button>
-      </td>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
+          <td>${t.id || ''}</td>
+          <td>${t.title}</td>
+          <td>${t.desc}</td>
+          <td>${t.steps}</td>
+          <td>${t.expected}</td>
+          <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
+          <td>${t.notes}</td>
+          <td>${t.priority}</td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
+            <button class="btn btn-sm btn-info" onclick="showHistory(${i})">
+              <i class="bi bi-clock-history"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ------------------- Historia test case -------------------
+function showHistory(index) {
+    const t = testCases[index];
+    if(!t || !t.history || t.history.length === 0) {
+        return showToast('Brak historii zmian dla tego testu', 'info');
+    }
+
+    let msg = '<ul>';
+    t.history.forEach(h => {
+        const date = new Date(h.date).toLocaleString();
+        msg += `<li>${date}: zmieniono pola [${h.changes.join(', ')}]</li>`;
+    });
+    msg += '</ul>';
+
+    // Można użyć toast lub modal - tu prosty toast z HTML
+    const toastRoot = document.getElementById('toastRoot');
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-slide toast-info';
+    toast.style.minWidth = '300px';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${msg}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+        </div>
     `;
-    tbody.appendChild(tr);
-  });
+    toastRoot.appendChild(toast);
+
+    const closeBtn = toast.querySelector('.btn-close');
+    closeBtn.addEventListener('click', () => toast.remove());
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => toast.remove(), 7000);
 }
 
 function deleteSelectedTestCases() {
