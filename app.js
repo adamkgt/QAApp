@@ -201,21 +201,17 @@ function loadTestCases() {
 // ------------------- Save Test Case -------------------
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
-
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
-        id: id,
-        uid: currentUser.uid,
+        id,
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
         expected: document.getElementById('expectedResult').value,
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
-        priority: document.getElementById('testPriority').value,
-        createdAt: index ? null : new Date().toISOString(), // dla Firestore później użyj serverTimestamp
-        updatedAt: new Date().toISOString()
+        priority: document.getElementById('testPriority').value
     };
 
     if (index) {
@@ -224,17 +220,18 @@ function saveTestCase() {
         testCases.push(t);
     }
 
-    // zapis do localStorage z normalnymi datami
+    // Zapis do localStorage
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
-    // zapis do Firebase
+    // Zapis do Firestore
     const tForFirebase = {
         ...t,
+        uid: currentUser.uid,
         createdAt: index ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    db.collection('TestCases').doc(t.id).set(tForFirebase)
+    db.collection('TestCases').doc(id).set(tForFirebase)
       .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
@@ -242,6 +239,7 @@ function saveTestCase() {
     renderTable();
     updateStats();
 }
+
 
 
 
