@@ -202,12 +202,11 @@ function loadTestCases() {
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
 
-    // Generowanie ID, jeśli nowy test case
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
         id: id,
-        uid: currentUser.uid, // klucz do powiązania testu z użytkownikiem
+        uid: currentUser.uid,
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -215,21 +214,27 @@ function saveTestCase() {
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        createdAt: index ? undefined : firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: index ? null : new Date().toISOString(), // dla Firestore później użyj serverTimestamp
+        updatedAt: new Date().toISOString()
     };
 
-    if(index) {
+    if (index) {
         testCases[index] = t;
     } else {
         testCases.push(t);
     }
 
-    // zapis do localStorage
+    // zapis do localStorage z normalnymi datami
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
     // zapis do Firebase
-    db.collection('TestCases').doc(t.id).set(t)
+    const tForFirebase = {
+        ...t,
+        createdAt: index ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    db.collection('TestCases').doc(t.id).set(tForFirebase)
       .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
@@ -237,6 +242,7 @@ function saveTestCase() {
     renderTable();
     updateStats();
 }
+
 
 
 function resetForm() {
