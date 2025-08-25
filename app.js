@@ -3,9 +3,12 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 let currentUser = null;
 let testCases = [];
+let sortKey = '';
+let sortAsc = true;
+
+// Liczniki importów/eksportów
 let importCount = 0;
 let exportCount = 0;
-let statusChartInstance = null;
 
 // ------------------- Toast -------------------
 function showToast(message, type = 'success', duration = 3000) {
@@ -148,115 +151,168 @@ auth.onAuthStateChanged(user => {
     else {
         currentUser = user;
         renderUserPanel();
-        loadTestCasesFromFirebase();
+        loadTestCases();
     }
 });
 
 // ------------------- CRUD -------------------
-async function saveTestCase() {
-    if (!currentUser) return showToast('Brak zalogowanego użytkownika!', 'danger');
+function loadTestCases() {
+    // Pobierz tylko testy przypisane do aktualnego użytkownika
+    db.collection('TestCases')
+      .where('uid', '==', currentUser.uid)
+      .get()
+      .then(snapshot => {
+        testCases = snapshot.docs.map(doc => doc.data());
+        renderTable();
+        updateStats();
+      });
+}
+
+function saveTestCase() {
+    const index = document.getElementById('editIndex').value;
+    const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
-        userId: currentUser.uid,
-        testID: document.getElementById('testID').value || Date.now().toString(),
-        title: document.getElementById('testName').value || '',
-        desc: document.getElementById('testDesc').value || '',
-        steps: document.getElementById('testSteps').value || '',
-        expected: document.getElementById('expectedResult').value || '',
-        status: document.getElementById('testStatus').value || '',
-        notes: document.getElementById('testNotes').value || '',
-        priority: document.getElementById('testPriority').value || '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        id: id,
+        uid: currentUser.uid,
+        title: document.getElementById('testName').value,
+        desc: document.getElementById('testDesc').value,
+        steps: document.getElementById('testSteps').value,
+        expected: document.getElementById('expectedResult').value,
+        status: document.getElementById('testStatus').value,
+        notes: document.getElementById('testNotes').value,
+        priority: document.getElementById('testPriority').value
     };
 
-    try {
-        await db.collection('testCases').doc(t.testID).set(t);
-        showToast('Test zapisany w Firebase!', 'success');
-        resetForm();
-    } catch (err) {
-        console.error(err);
-        showToast('Błąd zapisu w Firebase: ' + err.message, 'danger');
+    if(index) {
+        testCases[index] = t;
+    } else {
+        testCases.push(t);
     }
+
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+
+    db.collection('TestCases').doc(id).set(t)
+      .then(() => showToast('Test zapisany w Firebase!', 'success'))
+      .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
+
+    resetForm();
+    renderTable();
+    updateStats();
 }
 
 function resetForm() {
     document.getElementById('testForm').reset();
     document.getElementById('editIndex').value = '';
+    document.getElementById('testID').value = '';
 }
 
-function editTestCase(docId) {
-    db.collection('testCases').doc(docId).get().then(doc => {
-        if (!doc.exists) return;
-        const t = doc.data();
-        document.getElementById('testID').value = t.testID;
-        document.getElementById('testName').value = t.title;
-        document.getElementById('testDesc').value = t.desc;
-        document.getElementById('testSteps').value = t.steps;
-        document.getElementById('expectedResult').value = t.expected;
-        document.getElementById('testStatus').value = t.status;
-        document.getElementById('testNotes').value = t.notes;
-        document.getElementById('testPriority').value = t.priority;
-    });
+function clearFilters() {
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('priorityFilter').value = 'all';
+    document.getElementById('searchQuery').value = '';
+    renderTable();
 }
 
-async function deleteTestCase(docId) {
+function deleteTestCase(i) {
     if (!confirm('Usunąć ten test?')) return;
-    try {
-        await db.collection('testCases').doc(docId).delete();
-        showToast('Test usunięty!', 'warning');
-    } catch (err) {
-        console.error(err);
-        showToast('Błąd przy usuwaniu: ' + err.message, 'danger');
-    }
+
+    const t = testCases[i];
+    db.collection('TestCases').doc(t.id).delete().catch(err => console.error(err));
+    testCases.splice(i,1);
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    renderTable();
+    showToast('Test usunięty!', 'warning');
+    updateStats();
 }
 
-async function deleteAllTestCases() {
+function deleteAllTestCases() {
     if (!confirm('Usunąć wszystkie testy?')) return;
-    const snapshot = await db.collection('testCases').where('userId', '==', currentUser.uid).get();
-    const batch = db.batch();
-    snapshot.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
+    testCases.forEach(t => db.collection('TestCases').doc(t.id).delete().catch(err=>console.error(err)));
+    testCases = [];
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    renderTable();
     showToast('Wszystkie testy usunięte!', 'warning');
+    updateStats();
 }
 
-// ------------------- Pobieranie z Firebase -------------------
-function loadTestCasesFromFirebase() {
-    db.collection('testCases')
-      .where('userId', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
-      .onSnapshot(snapshot => {
-          testCases = [];
-          const tbody = document.querySelector('#testTable tbody');
-          tbody.innerHTML = '';
-          snapshot.forEach(doc => {
-              const t = doc.data();
-              t.id = doc.id;
-              testCases.push(t);
-              const tr = document.createElement('tr');
-              tr.innerHTML = `
-                <td><input type="checkbox" class="selectTest" data-id="${doc.id}" /></td>
-                <td>${t.testID}</td>
-                <td>${t.title}</td>
-                <td>${t.desc}</td>
-                <td>${t.steps}</td>
-                <td>${t.expected}</td>
-                <td>${t.status}</td>
-                <td>${t.notes}</td>
-                <td>${t.priority}</td>
-                <td>
-                  <button class="btn btn-sm btn-warning" onclick="editTestCase('${doc.id}')">Edytuj</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteTestCase('${doc.id}')">Usuń</button>
-                </td>
-              `;
-              tbody.appendChild(tr);
-          });
-          updateStats();
-      });
+function editTestCase(i) {
+    const t = testCases[i];
+    document.getElementById('testID').value = t.id;
+    document.getElementById('testName').value = t.title;
+    document.getElementById('testDesc').value = t.desc;
+    document.getElementById('testSteps').value = t.steps;
+    document.getElementById('expectedResult').value = t.expected;
+    document.getElementById('testStatus').value = t.status;
+    document.getElementById('testNotes').value = t.notes;
+    document.getElementById('testPriority').value = t.priority;
+    document.getElementById('editIndex').value = i;
+}
+
+// ------------------- Render tabeli -------------------
+function renderTable() {
+  const tbody = document.querySelector('#testTable tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+
+  const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+  const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+  const searchQuery = document.getElementById('searchQuery')?.value.toLowerCase() || '';
+
+  testCases.forEach((t, i) => {
+    if(statusFilter !== 'all' && ((t.status || 'unknown') !== statusFilter)) return;
+    if(priorityFilter !== 'all' && (t.priority || '') !== priorityFilter) return;
+    if(searchQuery && ![t.title, t.desc, t.steps, t.expected, t.notes].some(s=>s.toLowerCase().includes(searchQuery))) return;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="selectTest" data-index="${i}" /></td>
+      <td>${t.id || ''}</td>
+      <td>${t.title}</td>
+      <td>${t.desc}</td>
+      <td>${t.steps}</td>
+      <td>${t.expected}</td>
+      <td><span class="${t.status==='Pass'?'pass-badge':t.status==='Fail'?'fail-badge':'unknown-badge'}">${t.status||'Brak'}</span></td>
+      <td>${t.notes}</td>
+      <td>${t.priority}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="editTestCase(${i})">Edytuj</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTestCase(${i})">Usuń</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function deleteSelectedTestCases() {
+    const selectedIndexes = Array.from(document.querySelectorAll('.selectTest:checked'))
+                                .map(cb => parseInt(cb.dataset.index))
+                                .sort((a,b) => b-a);
+
+    if(selectedIndexes.length === 0) return showToast('Nie zaznaczono testów!', 'warning');
+    if(!confirm(`Usunąć ${selectedIndexes.length} zaznaczone testy?`)) return;
+
+    selectedIndexes.forEach(i => {
+        const t = testCases[i];
+        db.collection('TestCases').doc(t.id).delete().catch(err => console.error(err));
+        testCases.splice(i,1);
+    });
+
+    localStorage.setItem('testCases', JSON.stringify(testCases));
+    renderTable();
+    updateStats();
+    showToast(`${selectedIndexes.length} test(y) usunięty(e)!`, 'warning');
 }
 
 // ------------------- Statystyki -------------------
+let statusChartInstance = null;
 function updateStats() {
-    const counts = { Pass:0, Fail:0, unknown:0 };
+    const importCountEl = document.getElementById('importCount');
+    const exportCountEl = document.getElementById('exportCount');
+    if(importCountEl) importCountEl.textContent = importCount.toString();
+    if(exportCountEl) exportCountEl.textContent = exportCount.toString();
+
+    const counts = {Pass:0, Fail:0, unknown:0};
     testCases.forEach(t => {
         if(t.status==='Pass') counts.Pass++;
         else if(t.status==='Fail') counts.Fail++;
@@ -265,135 +321,99 @@ function updateStats() {
 
     const ctx = document.getElementById('statusChart')?.getContext('2d');
     if(!ctx) return;
-
     if(statusChartInstance) statusChartInstance.destroy();
     statusChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Pass','Fail','Brak'],
-            datasets: [{ data:[counts.Pass, counts.Fail, counts.unknown], backgroundColor:['#4caf50','#f44336','#9e9e9e'] }]
+            datasets: [{
+                data: [counts.Pass, counts.Fail, counts.unknown],
+                backgroundColor: ['#4caf50','#f44336','#9e9e9e']
+            }]
         },
         options: { responsive:true, plugins:{legend:{position:'bottom'}} }
     });
 }
 
-// ------------------- Usuń zaznaczone -------------------
-async function deleteSelectedTestCases() {
-    const selected = Array.from(document.querySelectorAll('.selectTest:checked'));
-    if (selected.length === 0) return showToast('Nie zaznaczono testów!', 'warning');
-    if (!confirm(`Usunąć ${selected.length} zaznaczone testy?`)) return;
-
-    const batch = db.batch();
-    selected.forEach(cb => {
-        const docId = cb.dataset.id;
-        const docRef = db.collection('testCases').doc(docId);
-        batch.delete(docRef);
-    });
-
-    try {
-        await batch.commit();
-        showToast(`${selected.length} test(y) usunięty(e)!`, 'warning');
-    } catch (err) {
-        console.error(err);
-        showToast('Błąd przy usuwaniu: ' + err.message, 'danger');
-    }
+// ------------------- Import / Export CSV / PDF -------------------
+function clearCSVFile() {
+    const fileInput = document.getElementById('csvFile');
+    if (!fileInput) return;
+    fileInput.value = '';
+    showToast('Pole pliku zostało wyczyszczone.', 'warning');
 }
 
-// ------------------- Import CSV -------------------
 function importFromCSV() {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
-    if (!file) return showToast('Wybierz plik CSV do importu.', 'warning');
+    if (!file) {
+        showToast('Wybierz plik CSV do importu.', 'warning');
+        return;
+    }
     if (!file.name.toLowerCase().endsWith('.csv')) {
+        showToast('Nieprawidłowy typ pliku. Wybierz plik CSV.', 'danger');
         fileInput.value = '';
-        return showToast('Nieprawidłowy typ pliku. Wybierz plik CSV.', 'danger');
+        return;
     }
 
     const reader = new FileReader();
-    reader.onload = async e => {
+    reader.onload = e => {
         const lines = e.target.result.split('\n');
         let addedCount = 0;
-        const batch = db.batch();
-
         lines.forEach(line => {
             const [title, desc, steps, expected, status, notes, priority] = line.split(',');
-            if (!title) return;
-            const testID = Date.now().toString() + Math.floor(Math.random()*1000);
-            const docRef = db.collection('testCases').doc(testID);
-            batch.set(docRef, {
-                userId: currentUser.uid,
-                testID,
-                title, desc, steps, expected, status, notes, priority,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            addedCount++;
+            if(title){
+                const t = { id: Date.now().toString(), uid: currentUser.uid, title, desc, steps, expected, status, notes, priority };
+                testCases.push(t);
+                db.collection('TestCases').doc(t.id).set(t).catch(err => console.error(err));
+                addedCount++;
+            }
         });
-
-        try {
-            await batch.commit();
-            showToast(`Zaimportowano ${addedCount} testów do Firebase.`, 'success');
-            fileInput.value = '';
-        } catch (err) {
-            console.error(err);
-            showToast('Błąd importu CSV: ' + err.message, 'danger');
-        }
+        if (addedCount>0){
+            localStorage.setItem('testCases', JSON.stringify(testCases));
+            renderTable();
+            importCount++;
+            showToast(`Zaimportowano ${addedCount} testów z CSV.`, 'success');
+            updateStats();
+        } else showToast('Plik CSV jest pusty lub niepoprawny.', 'warning');
     };
     reader.readAsText(file);
 }
 
-// ------------------- Eksport CSV / PDF -------------------
-async function exportToCSV() {
-    try {
-        const snapshot = await db.collection('testCases')
-            .where('userId','==',currentUser.uid)
-            .get();
-        let csv = 'Tytuł,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n';
-        snapshot.forEach(doc => {
-            const t = doc.data();
-            csv += `${t.title},${t.desc},${t.steps},${t.expected},${t.status},${t.notes},${t.priority}\n`;
-        });
-        const a = document.createElement('a');
-        a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-        a.download = 'testCases.csv';
-        a.click();
-        exportCount++;
-        showToast('CSV wyeksportowane!', 'success');
-    } catch (err) {
-        console.error(err);
-        showToast('Błąd eksportu CSV: ' + err.message, 'danger');
-    }
+function exportToCSV() {
+    let csv = 'Tytuł,Opis,Kroki,Oczekiwany,Status,Uwagi,Priorytet\n';
+    testCases.forEach(t=>{
+        csv+=`${t.title},${t.desc},${t.steps},${t.expected},${t.status},${t.notes},${t.priority}\n`;
+    });
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'testCases.csv';
+    a.click();
+    exportCount++;
+    showToast('CSV wyeksportowane!', 'success');
+    updateStats();
 }
 
-async function exportToPDF() {
-    try {
-        const snapshot = await db.collection('testCases')
-            .where('userId','==',currentUser.uid)
-            .get();
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text('Test Cases', 10, 10);
-        const body = snapshot.docs.map(d => {
-            const t = d.data();
-            return [t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority];
-        });
-        doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']], body });
-        doc.save('testCases.pdf');
-        exportCount++;
-        showToast('PDF wyeksportowane!', 'success');
-    } catch (err) {
-        console.error(err);
-        showToast('Błąd eksportu PDF: ' + err.message, 'danger');
-    }
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text('Test Cases', 10, 10);
+    doc.autoTable({ head: [['Tytuł','Opis','Kroki','Oczekiwany','Status','Uwagi','Priorytet']], body: testCases.map(t=>[t.title,t.desc,t.steps,t.expected,t.status,t.notes,t.priority]) });
+    doc.save('testCases.pdf');
+    exportCount++;
+    showToast('PDF wyeksportowane!', 'success');
+    updateStats();
 }
-
 
 // ------------------- Init -------------------
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('testForm')?.addEventListener('submit', e => { e.preventDefault(); saveTestCase(); });
+document.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('testForm')?.addEventListener('submit', e=>{ e.preventDefault(); saveTestCase(); });
+    document.getElementById('statusFilter')?.addEventListener('change', renderTable);
+    document.getElementById('priorityFilter')?.addEventListener('change', renderTable);
+    document.getElementById('searchQuery')?.addEventListener('input', renderTable);
     document.getElementById('importCSVBtn')?.addEventListener('click', importFromCSV);
     document.getElementById('clearCSVFile')?.addEventListener('click', clearCSVFile);
 
-    // Zaznacz / odznacz wszystkie checkboxy
     document.getElementById('selectAll')?.addEventListener('change', function() {
         const checked = this.checked;
         document.querySelectorAll('.selectTest').forEach(cb => cb.checked = checked);
