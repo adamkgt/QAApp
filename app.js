@@ -161,40 +161,33 @@ function loadTestCases() {
     if (!currentUser) return;
 
     db.collection('TestCases')
-      .where('uid', '==', currentUser.uid) // tylko własne testy
-      .orderBy('createdAt', 'desc')        // posortowane po dacie utworzenia
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
       .get()
       .then(snapshot => {
           testCases = [];
           snapshot.forEach(doc => {
               const data = doc.data();
               testCases.push({
-                  id: data.id || doc.id,
-                  uid: data.uid,
-                  title: data.title || '',
-                  desc: data.desc || '',
-                  steps: data.steps || '',
-                  expected: data.expected || '',
-                  status: data.status || '',
-                  notes: data.notes || '',
-                  priority: data.priority || '',
-                  createdAt: data.createdAt ? data.createdAt.toDate() : null, // konwersja timestamp
-                  updatedAt: data.updatedAt ? data.updatedAt.toDate() : null  // jeśli będzie aktualizowane
+                  ...data,
+                  id: doc.id,
+                  createdAt: data.createdAt?.toDate?.() || null,
+                  updatedAt: data.updatedAt?.toDate?.() || null
               });
           });
 
-          // Zapis lokalny
+          // Zapis lokalny, aby zachować offline lub szybkie filtrowanie
           localStorage.setItem('testCases', JSON.stringify(testCases));
 
-          // Aktualizacja UI
           renderTable();
           updateStats();
       })
       .catch(err => {
-          console.error('Błąd wczytywania testów z Firebase:', err);
           showToast('Błąd wczytywania testów z Firebase: ' + err.message, 'danger');
+          console.error('Błąd wczytywania testów z Firebase:', err);
       });
 }
+
 
 
 
