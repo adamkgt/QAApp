@@ -202,11 +202,12 @@ function loadTestCases() {
 function saveTestCase() {
     const index = document.getElementById('editIndex').value;
 
+    // Generowanie ID, jeśli nowy test case
     const id = document.getElementById('testID').value || Date.now().toString();
 
     const t = {
         id: id,
-        uid: currentUser.uid,       // <- tutaj UID użytkownika
+        uid: currentUser.uid, // klucz do powiązania testu z użytkownikiem
         title: document.getElementById('testName').value,
         desc: document.getElementById('testDesc').value,
         steps: document.getElementById('testSteps').value,
@@ -214,7 +215,8 @@ function saveTestCase() {
         status: document.getElementById('testStatus').value,
         notes: document.getElementById('testNotes').value,
         priority: document.getElementById('testPriority').value,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: index ? undefined : firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if(index) {
@@ -223,10 +225,12 @@ function saveTestCase() {
         testCases.push(t);
     }
 
+    // zapis do localStorage
     localStorage.setItem('testCases', JSON.stringify(testCases));
 
+    // zapis do Firebase
     db.collection('TestCases').doc(t.id).set(t)
-      .then(() => showToast('Test zapisany Pomyślnie!', 'success'))
+      .then(() => showToast('Test zapisany w Firebase!', 'success'))
       .catch(err => showToast('Błąd Firebase: ' + err.message, 'danger'));
 
     resetForm();
